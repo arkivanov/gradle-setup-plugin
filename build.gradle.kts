@@ -14,9 +14,9 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30")
-    implementation("com.android.tools.build:gradle:4.2.0")
-    implementation("gradle.plugin.org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.4.18")
+    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30")
+    compileOnly("com.android.tools.build:gradle:4.2.0")
+    compileOnly("gradle.plugin.org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.4.18")
 }
 
 gradlePlugin {
