@@ -17,7 +17,7 @@ sealed class Target {
         }
     }
 
-    internal companion object {
+    companion object {
         val ALL_DEFAULT: List<Target> =
             listOf(
                 Android,
@@ -29,7 +29,7 @@ sealed class Target {
                 Js(),
             )
 
-        val LINUX_SPLIT_CLASSES: List<KClass<out Target>> =
+        internal val LINUX_SPLIT_CLASSES: List<KClass<out Target>> =
             listOf(
                 Android::class,
                 Jvm::class,
@@ -37,7 +37,7 @@ sealed class Target {
                 Js::class,
             )
 
-        val MACOS_SPLIT_CLASSES: List<KClass<out Target>> =
+        internal val MACOS_SPLIT_CLASSES: List<KClass<out Target>> =
             listOf(
                 Ios::class,
                 WatchOs::class,

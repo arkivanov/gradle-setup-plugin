@@ -4,11 +4,12 @@ import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import kotlin.reflect.KClass
 
-internal fun Project.setupMultiplatform(targets: List<Target>) {
+internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigurator: (SourceSetsScope.() -> Unit)?) {
     enabledTargets = targets
 
-    setupCommon()
+    setupSourceSets(sourceSetConfigurator)
 
     doIfTargetEnabled<Target.Android> {
         setupAndroidTarget()
@@ -48,7 +49,7 @@ internal fun Project.setupMultiplatform(targets: List<Target>) {
     }
 }
 
-private fun Project.setupCommon() {
+private fun Project.setupSourceSets(configurator: (SourceSetsScope.() -> Unit)?) {
     kotlin {
         sourceSets {
             getByName("commonMain") {
@@ -63,62 +64,81 @@ private fun Project.setupCommon() {
                 }
             }
 
-            if (isTargetEnabled(Target::isJava) || isTargetEnabled<Target.Js>()) {
-                create("jvmJsMain").dependsOn(getByName("commonMain"))
-                create("jvmJsTest").dependsOn(getByName("commonTest"))
-            }
-
-            if (isTargetEnabled<Target.Js>() || isTargetEnabled(Target::isNative)) {
-                create("jsNativeMain").dependsOn(getByName("commonMain"))
-                create("jsNativeTest").dependsOn(getByName("commonTest"))
-            }
-
-            if (isTargetEnabled(Target::isJava) || isTargetEnabled(Target::isNative)) {
-                create("jvmNativeMain").dependsOn(getByName("commonMain"))
-                create("jvmNativeTest").dependsOn(getByName("commonTest"))
-            }
-
-            if (isTargetEnabled(Target::isJava)) {
-                create("javaMain") {
-                    dependsOn(getByName("jvmJsMain"))
-                    dependsOn(getByName("jvmNativeMain"))
-                }
-
-                create("javaTest") {
-                    dependsOn(getByName("jvmJsTest"))
-                    dependsOn(getByName("jvmNativeTest"))
-                }
-            }
-
-            if (isTargetEnabled(Target::isNative)) {
-                create("nativeMain") {
-                    dependsOn(getByName("jsNativeMain"))
-                    dependsOn(getByName("jvmNativeMain"))
-                }
-
-                create("nativeTest") {
-                    dependsOn(getByName("jsNativeTest"))
-                    dependsOn(getByName("jvmNativeTest"))
-                }
-            }
-
-            if (isTargetEnabled(Target::isDarwin)) {
-                create("darwinMain").dependsOn(getByName("nativeMain"))
-                create("darwinTest").dependsOn(getByName("nativeTest"))
+            if (configurator != null) {
+                configureSourceSets(configurator)
             }
         }
     }
 }
 
+private fun Project.configureSourceSets(configurator: SourceSetsScope.() -> Unit) {
+    val scope = DefaultSourceSetsScope()
+    scope.configurator()
+    configureSourceSets(scope)
+}
+
+private fun Project.configureSourceSets(scope: DefaultSourceSetsScope) {
+    val kotlinSourceSets = extensions.getByType<KotlinMultiplatformExtension>().sourceSets
+
+    scope.connections.forEach { (child, parent) ->
+        val parentLeaves = scope.findLeafSourceSets(parent = parent)
+
+        // We can't create an unconnected source set, should be fixed in Kotlin 1.6.0
+
+        if (parentLeaves.any(::isLeafSourceSetAllowed)) {
+            val parentMain = kotlinSourceSets.maybeCreate(parent.main)
+            val parentTest = kotlinSourceSets.maybeCreate(parent.test)
+
+            val childLeaves = scope.findLeafSourceSets(parent = child)
+            if (childLeaves.any(::isLeafSourceSetAllowed)) {
+                kotlinSourceSets.maybeCreate(child.main).dependsOn(parentMain)
+                kotlinSourceSets.maybeCreate(child.test).dependsOn(parentTest)
+            }
+        }
+    }
+}
+
+private fun DefaultSourceSetsScope.findLeafSourceSets(parent: SourceSetName): Set<SourceSetName> {
+    val set = HashSet<SourceSetName>()
+
+    connections.forEach { (a, b) ->
+        if (b == parent) {
+            val leaves = findLeafSourceSets(parent = a)
+
+            if (leaves.isEmpty()) {
+                set += a
+            } else {
+                set += leaves
+            }
+        }
+    }
+
+    if (set.isEmpty()) {
+        set += parent
+    }
+
+    return set
+}
+
+private fun Project.isLeafSourceSetAllowed(leafSourceSet: SourceSetName): Boolean =
+    isTargetEnabled(getTargetClassForLeafSourceSet(leafSourceSet = leafSourceSet))
+
+private fun getTargetClassForLeafSourceSet(leafSourceSet: SourceSetName): KClass<out Target> =
+    when (leafSourceSet) {
+        DefaultSourceSetNames.android -> Target.Android::class
+        DefaultSourceSetNames.jvm -> Target.Jvm::class
+        DefaultSourceSetNames.js -> Target.Js::class
+        DefaultSourceSetNames.linuxX64 -> Target.Linux::class
+        in DefaultSourceSetNames.iosSet -> Target.Ios::class
+        in DefaultSourceSetNames.watchosSet -> Target.WatchOs::class
+        in DefaultSourceSetNames.macosSet -> Target.MacOs::class
+        else -> error("No Target class found for leaf source set $leafSourceSet")
+    }
+
 private fun Project.setupAndroidTarget() {
     kotlin {
         android {
             disableCompilationsIfNeeded()
-        }
-
-        sourceSets {
-            getByName("androidMain").dependsOn(getByName("javaMain"))
-            getByName("androidTest").dependsOn(getByName("javaTest"))
         }
     }
 }
@@ -128,11 +148,6 @@ private fun Project.setupJvmTarget() {
         jvm {
             disableCompilationsIfNeeded()
         }
-
-        sourceSets {
-            getByName("jvmMain").dependsOn(getByName("javaMain"))
-            getByName("jvmTest").dependsOn(getByName("javaTest"))
-        }
     }
 }
 
@@ -140,11 +155,6 @@ private fun Project.setupLinuxTarget() {
     kotlin {
         linuxX64 {
             disableCompilationsIfNeeded()
-        }
-
-        sourceSets {
-            getByName("linuxX64Main").dependsOn(getByName("nativeMain"))
-            getByName("linuxX64Test").dependsOn(getByName("nativeTest"))
         }
     }
 }
@@ -157,14 +167,6 @@ private fun Project.setupIosTarget() {
 
         iosX64 {
             disableCompilationsIfNeeded()
-        }
-
-        sourceSets {
-            getByName("iosArm64Main").dependsOn(getByName("darwinMain"))
-            getByName("iosArm64Test").dependsOn(getByName("darwinTest"))
-
-            getByName("iosX64Main").dependsOn(getByName("darwinMain"))
-            getByName("iosX64Test").dependsOn(getByName("darwinTest"))
         }
     }
 }
@@ -182,17 +184,6 @@ private fun Project.setupWatchOsTarget() {
         watchosX64 {
             disableCompilationsIfNeeded()
         }
-
-        sourceSets {
-            getByName("watchosArm32Main").dependsOn(getByName("darwinMain"))
-            getByName("watchosArm32Test").dependsOn(getByName("darwinTest"))
-
-            getByName("watchosArm64Main").dependsOn(getByName("darwinMain"))
-            getByName("watchosArm64Test").dependsOn(getByName("darwinTest"))
-
-            getByName("watchosX64Main").dependsOn(getByName("darwinMain"))
-            getByName("watchosX64Test").dependsOn(getByName("darwinTest"))
-        }
     }
 }
 
@@ -200,11 +191,6 @@ private fun Project.setupMacOsTarget() {
     kotlin {
         macosX64 {
             disableCompilationsIfNeeded()
-        }
-
-        sourceSets {
-            getByName("macosX64Main").dependsOn(getByName("darwinMain"))
-            getByName("macosX64Test").dependsOn(getByName("darwinTest"))
         }
     }
 }
@@ -222,18 +208,6 @@ private fun Project.setupJsTarget(mode: Target.Js.Mode) {
             nodejs()
 
             disableCompilationsIfNeeded()
-        }
-
-        sourceSets {
-            getByName("jsMain") {
-                dependsOn(getByName("jvmJsMain"))
-                dependsOn(getByName("jsNativeMain"))
-            }
-
-            getByName("jsTest") {
-                dependsOn(getByName("jvmJsTest"))
-                dependsOn(getByName("jsNativeTest"))
-            }
         }
     }
 }

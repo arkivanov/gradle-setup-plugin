@@ -33,13 +33,16 @@ internal inline fun <reified T : Target> Project.doIfTargetEnabled(block: (T) ->
         ?.also(block)
 }
 
+internal fun Project.isTargetEnabled(clazz: KClass<out Target>): Boolean =
+    enabledTargets.any { it::class == clazz }
+
 internal inline fun <reified T : Target> Project.isTargetEnabled(): Boolean =
     enabledTargets.any { it is T }
 
 internal inline fun Project.isTargetEnabled(block: (Target) -> Boolean): Boolean =
     enabledTargets.any(block)
 
-internal val Target.isJava: Boolean
+val Target.isJava: Boolean
     get() =
         when (this) {
             is Target.Android,
@@ -51,7 +54,7 @@ internal val Target.isJava: Boolean
             is Target.Js -> false
         }
 
-internal val Target.isNative: Boolean
+val Target.isNative: Boolean
     get() =
         when (this) {
             is Target.Linux,
@@ -63,7 +66,7 @@ internal val Target.isNative: Boolean
             is Target.Js -> false
         }
 
-internal val Target.isDarwin: Boolean
+val Target.isDarwin: Boolean
     get() =
         when (this) {
             is Target.Ios,

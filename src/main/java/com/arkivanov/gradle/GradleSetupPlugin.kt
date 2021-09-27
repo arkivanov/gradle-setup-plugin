@@ -8,6 +8,6 @@ class GradleSetupPlugin : Plugin<Project> {
 
     override fun apply(target: Project) {
         target.extensions.create<GradleSetupExtension>("setup").project = target
-        target.extensions.create<GradleSetupPublicationConfigExtension>("publicationDefaults")
+        target.extensions.create<GradleSetupDefaultsExtension>("setupDefaults")
     }
 }

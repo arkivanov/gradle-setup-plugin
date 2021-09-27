@@ -1,6 +1,5 @@
 package com.arkivanov.gradle
 
-import com.arkivanov.gradle.GradleSetupPublicationConfigExtension.*
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.findByType
 
@@ -8,18 +7,33 @@ open class GradleSetupExtension {
 
     internal lateinit var project: Project
 
-    private val publicationConfig by lazy {
-        project.extensions.findByType<GradleSetupPublicationConfigExtension>()?.config
-            ?: project.rootProject.extensions.findByType<GradleSetupPublicationConfigExtension>()?.config
-            ?: error("Publication config is not set")
+    private val defaultPublicationConfig: PublicationConfig by lazy {
+        project.findDefaultConfig(
+            errorMessage = "Default publication config not set",
+            extract = GradleSetupDefaultsExtension::publicationConfig,
+        )
+    }
+
+    private val defaultMultiplatformTargets: List<Target> by lazy {
+        project.findDefaultConfig(
+            errorMessage = "Default multiplatform targets not set",
+            extract = GradleSetupDefaultsExtension::multiplatformTargets,
+        )
+    }
+
+    private val defaultSourceSetConfigurator: (SourceSetsScope.() -> Unit)? by lazy {
+        project.findDefaultConfig(GradleSetupDefaultsExtension::multiplatformSourceSetConfigurator)
     }
 
     fun multiplatform(vararg targets: Target) {
-        project.setupMultiplatform(targets.takeUnless(Array<*>::isEmpty)?.toList() ?: Target.ALL_DEFAULT)
+        project.setupMultiplatform(
+            targets = targets.takeUnless(Array<*>::isEmpty)?.toList() ?: Target.ALL_DEFAULT,
+            sourceSetConfigurator = defaultSourceSetConfigurator,
+        )
     }
 
     fun multiplatformPublications() {
-        project.setupMultiplatformPublications(config = publicationConfig)
+        project.setupMultiplatformPublications(defaultPublicationConfig)
     }
 
     fun androidLibrary(block: (isCompilationAllowed: Boolean) -> Unit = {}) {
@@ -56,5 +70,15 @@ open class GradleSetupExtension {
             intellijVersion = intellijVersion
         )
         block(isTargetCompilationAllowed<Target.Jvm>())
+    }
+
+    private companion object {
+        private fun <T : Any> Project.findDefaultConfig(errorMessage: String, extract: (GradleSetupDefaultsExtension) -> T?): T =
+            findDefaultConfig(extract)
+                ?: error(errorMessage)
+
+        private fun <T : Any> Project.findDefaultConfig(extract: (GradleSetupDefaultsExtension) -> T?): T? =
+            project.extensions.findByType<GradleSetupDefaultsExtension>()?.let(extract)
+                ?: project.rootProject.extensions.findByType<GradleSetupDefaultsExtension>()?.let(extract)
     }
 }
