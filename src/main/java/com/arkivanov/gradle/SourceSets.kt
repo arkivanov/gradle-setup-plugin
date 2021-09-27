@@ -26,6 +26,10 @@ interface SourceSetNames {
     val watchosX64: SourceSetName
     val watchosSet: Set<SourceSetName>
 
+    val tvosArm64: SourceSetName
+    val tvosX64: SourceSetName
+    val tvosSet: Set<SourceSetName>
+
     val macosX64: SourceSetName
     val macosSet: Set<SourceSetName>
 }
@@ -56,6 +60,10 @@ internal object DefaultSourceSetNames : SourceSetNames {
     override val watchosArm64: SourceSetName by named()
     override val watchosX64: SourceSetName by named()
     override val watchosSet: Set<SourceSetName> get() = setOf(watchosArm32, watchosArm64, watchosX64)
+
+    override val tvosArm64: SourceSetName by named()
+    override val tvosX64: SourceSetName by named()
+    override val tvosSet: Set<SourceSetName> = setOf(tvosArm64, tvosX64)
 
     override val macosX64: SourceSetName by named()
     override val macosSet: Set<SourceSetName> get() = setOf(macosX64)

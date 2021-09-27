@@ -50,6 +50,7 @@ val Target.isJava: Boolean
             is Target.Linux,
             is Target.Ios,
             is Target.WatchOs,
+            is Target.TvOs,
             is Target.MacOs,
             is Target.Js -> false
         }
@@ -60,6 +61,7 @@ val Target.isNative: Boolean
             is Target.Linux,
             is Target.Ios,
             is Target.WatchOs,
+            is Target.TvOs,
             is Target.MacOs -> true
             is Target.Android,
             is Target.Jvm,
@@ -71,6 +73,7 @@ val Target.isDarwin: Boolean
         when (this) {
             is Target.Ios,
             is Target.WatchOs,
+            is Target.TvOs,
             is Target.MacOs -> true
             is Target.Android,
             is Target.Jvm,

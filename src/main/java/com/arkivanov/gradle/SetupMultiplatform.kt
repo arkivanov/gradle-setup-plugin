@@ -9,8 +9,6 @@ import kotlin.reflect.KClass
 internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigurator: (SourceSetsScope.() -> Unit)?) {
     enabledTargets = targets
 
-    setupSourceSets(sourceSetConfigurator)
-
     doIfTargetEnabled<Target.Android> {
         setupAndroidTarget()
 
@@ -35,6 +33,10 @@ internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigur
         setupWatchOsTarget()
     }
 
+    doIfTargetEnabled<Target.TvOs> {
+        setupTvOsTarget()
+    }
+
     doIfTargetEnabled<Target.MacOs> {
         setupMacOsTarget()
     }
@@ -42,6 +44,8 @@ internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigur
     doIfTargetEnabled<Target.Js> {
         setupJsTarget(mode = it.mode)
     }
+
+    setupSourceSets(sourceSetConfigurator)
 
     println("Enabled targets for $this:")
     extensions.getByType<KotlinMultiplatformExtension>().targets.forEach {
@@ -131,6 +135,7 @@ private fun getTargetClassForLeafSourceSet(leafSourceSet: SourceSetName): KClass
         DefaultSourceSetNames.linuxX64 -> Target.Linux::class
         in DefaultSourceSetNames.iosSet -> Target.Ios::class
         in DefaultSourceSetNames.watchosSet -> Target.WatchOs::class
+        in DefaultSourceSetNames.tvosSet -> Target.TvOs::class
         in DefaultSourceSetNames.macosSet -> Target.MacOs::class
         else -> error("No Target class found for leaf source set $leafSourceSet")
     }
@@ -182,6 +187,18 @@ private fun Project.setupWatchOsTarget() {
         }
 
         watchosX64 {
+            disableCompilationsIfNeeded()
+        }
+    }
+}
+
+private fun Project.setupTvOsTarget() {
+    kotlin {
+        tvosArm64 {
+            disableCompilationsIfNeeded()
+        }
+
+        tvosX64 {
             disableCompilationsIfNeeded()
         }
     }

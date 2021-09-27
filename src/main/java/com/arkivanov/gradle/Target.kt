@@ -9,6 +9,7 @@ sealed class Target {
     object Linux : Target()
     object Ios : Target()
     object WatchOs : Target()
+    object TvOs : Target()
     object MacOs : Target()
 
     class Js(val mode: Mode = Mode.BOTH) : Target() {
@@ -25,6 +26,7 @@ sealed class Target {
                 Linux,
                 Ios,
                 WatchOs,
+                TvOs,
                 MacOs,
                 Js(),
             )
@@ -41,6 +43,7 @@ sealed class Target {
             listOf(
                 Ios::class,
                 WatchOs::class,
+                TvOs::class,
                 MacOs::class,
             )
 
