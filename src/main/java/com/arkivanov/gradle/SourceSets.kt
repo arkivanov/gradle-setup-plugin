@@ -1,8 +1,7 @@
 package com.arkivanov.gradle
 
-import org.gradle.kotlin.dsl.provideDelegate
+import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
 
 data class SourceSetName(val name: String)
 
@@ -12,37 +11,46 @@ internal val SourceSetName.test: String get() = "${name}Test"
 interface SourceSetNames {
 
     val common: SourceSetName
+
     val android: SourceSetName
     val jvm: SourceSetName
     val js: SourceSetName
+
     val linuxX64: SourceSetName
 
     val iosArm64: SourceSetName
     val iosX64: SourceSetName
-    val iosSet: Set<SourceSetName>
 
     val watchosArm32: SourceSetName
     val watchosArm64: SourceSetName
     val watchosX64: SourceSetName
-    val watchosSet: Set<SourceSetName>
 
     val tvosArm64: SourceSetName
     val tvosX64: SourceSetName
-    val tvosSet: Set<SourceSetName>
 
     val macosX64: SourceSetName
-    val macosSet: Set<SourceSetName>
 }
 
-fun SourceSetNames.named(name: String): SourceSetName = SourceSetName(name = name)
+val SourceSetNames.javaSet: Set<SourceSetName>
+    get() = setOf(android, jvm)
 
-fun SourceSetNames.named(): ReadOnlyProperty<Any?, SourceSetName> = SourceSetNameDelegate()
+val SourceSetNames.iosSet: Set<SourceSetName>
+    get() = setOf(iosArm64, iosX64)
 
-internal class SourceSetNameDelegate : ReadOnlyProperty<Any?, SourceSetName> {
+val SourceSetNames.watchosSet: Set<SourceSetName>
+    get() = setOf(watchosArm32, watchosArm64, watchosX64)
 
-    override fun getValue(thisRef: Any?, property: KProperty<*>): SourceSetName =
-        SourceSetName(name = property.name)
-}
+val SourceSetNames.tvosSet: Set<SourceSetName>
+    get() = setOf(tvosArm64, tvosX64)
+
+val SourceSetNames.macosSet: Set<SourceSetName>
+    get() = setOf(macosX64)
+
+val SourceSetNames.darwinSet: Set<SourceSetName>
+    get() = listOf(iosSet, watchosSet, tvosSet, macosSet).flatten().toSet()
+
+val SourceSetNames.nativeSet: Set<SourceSetName>
+    get() = (darwinSet + linuxX64).toSet()
 
 internal object DefaultSourceSetNames : SourceSetNames {
 
@@ -54,40 +62,71 @@ internal object DefaultSourceSetNames : SourceSetNames {
 
     override val iosArm64: SourceSetName by named()
     override val iosX64: SourceSetName by named()
-    override val iosSet: Set<SourceSetName> get() = setOf(iosArm64, iosX64)
 
     override val watchosArm32: SourceSetName by named()
     override val watchosArm64: SourceSetName by named()
     override val watchosX64: SourceSetName by named()
-    override val watchosSet: Set<SourceSetName> get() = setOf(watchosArm32, watchosArm64, watchosX64)
 
     override val tvosArm64: SourceSetName by named()
     override val tvosX64: SourceSetName by named()
-    override val tvosSet: Set<SourceSetName> = setOf(tvosArm64, tvosX64)
 
     override val macosX64: SourceSetName by named()
-    override val macosSet: Set<SourceSetName> get() = setOf(macosX64)
+
+    private fun named(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, SourceSetName>> =
+        PropertyDelegateProvider { _, property ->
+            val name = SourceSetName(name = property.name)
+            ReadOnlyProperty { _, _ -> name }
+        }
 }
 
 interface SourceSetsScope : SourceSetNames {
 
-    infix fun SourceSetName.dependsOn(other: SourceSetName)
+    fun SourceSetName.dependsOn(vararg parents: SourceSetName)
 
-    infix fun Set<SourceSetName>.dependsOn(other: SourceSetName)
+    fun SourceSetName.dependsOn(parents: Iterable<SourceSetName>)
+
+    fun Iterable<SourceSetName>.dependsOn(vararg parents: SourceSetName)
+
+    fun Iterable<SourceSetName>.dependsOn(parents: Iterable<SourceSetName>)
 }
+
+internal fun SourceSetsScope.named(name: String, vararg parents: SourceSetName): SourceSetName {
+    val child = SourceSetName(name = name)
+    child.dependsOn(parents.asIterable())
+
+    return child
+}
+
+fun SourceSetsScope.named(vararg parents: SourceSetName): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, SourceSetName>> =
+    PropertyDelegateProvider { _, property ->
+        val name = named(name = property.name, parents = parents)
+        ReadOnlyProperty { _, _ -> name }
+    }
 
 internal class DefaultSourceSetsScope : SourceSetsScope, SourceSetNames by DefaultSourceSetNames {
 
     private val _connections = ArrayList<Pair<SourceSetName, SourceSetName>>()
     val connections: List<Pair<SourceSetName, SourceSetName>> = _connections
 
-    override fun SourceSetName.dependsOn(other: SourceSetName) {
-        _connections += this to other
+    override fun SourceSetName.dependsOn(vararg parents: SourceSetName) {
+        dependsOn(parents.asIterable())
     }
 
-    override fun Set<SourceSetName>.dependsOn(other: SourceSetName) {
-        forEach {
-            _connections += it to other
+    override fun SourceSetName.dependsOn(parents: Iterable<SourceSetName>) {
+        parents.forEach { parent ->
+            _connections += this to parent
+        }
+    }
+
+    override fun Iterable<SourceSetName>.dependsOn(vararg parents: SourceSetName) {
+        dependsOn(parents.asIterable())
+    }
+
+    override fun Iterable<SourceSetName>.dependsOn(parents: Iterable<SourceSetName>) {
+        forEach { child ->
+            parents.forEach { parent ->
+                _connections += child to parent
+            }
         }
     }
 }

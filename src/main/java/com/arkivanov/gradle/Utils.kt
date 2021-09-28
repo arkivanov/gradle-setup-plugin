@@ -36,51 +36,6 @@ internal inline fun <reified T : Target> Project.doIfTargetEnabled(block: (T) ->
 internal fun Project.isTargetEnabled(clazz: KClass<out Target>): Boolean =
     enabledTargets.any { it::class == clazz }
 
-internal inline fun <reified T : Target> Project.isTargetEnabled(): Boolean =
-    enabledTargets.any { it is T }
-
-internal inline fun Project.isTargetEnabled(block: (Target) -> Boolean): Boolean =
-    enabledTargets.any(block)
-
-val Target.isJava: Boolean
-    get() =
-        when (this) {
-            is Target.Android,
-            is Target.Jvm -> true
-            is Target.Linux,
-            is Target.Ios,
-            is Target.WatchOs,
-            is Target.TvOs,
-            is Target.MacOs,
-            is Target.Js -> false
-        }
-
-val Target.isNative: Boolean
-    get() =
-        when (this) {
-            is Target.Linux,
-            is Target.Ios,
-            is Target.WatchOs,
-            is Target.TvOs,
-            is Target.MacOs -> true
-            is Target.Android,
-            is Target.Jvm,
-            is Target.Js -> false
-        }
-
-val Target.isDarwin: Boolean
-    get() =
-        when (this) {
-            is Target.Ios,
-            is Target.WatchOs,
-            is Target.TvOs,
-            is Target.MacOs -> true
-            is Target.Android,
-            is Target.Jvm,
-            is Target.Linux,
-            is Target.Js -> false
-        }
-
 @Suppress("UNCHECKED_CAST")
 internal var Project.enabledTargets: List<Target>
     get() = extra.get("enabled_targets") as List<Target>

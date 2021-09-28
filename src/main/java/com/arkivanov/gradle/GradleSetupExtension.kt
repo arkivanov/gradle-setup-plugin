@@ -27,7 +27,7 @@ open class GradleSetupExtension {
 
     fun multiplatform(vararg targets: Target) {
         project.setupMultiplatform(
-            targets = targets.takeUnless(Array<*>::isEmpty)?.toList() ?: Target.ALL_DEFAULT,
+            targets = targets.takeUnless(Array<*>::isEmpty)?.toList() ?: defaultMultiplatformTargets,
             sourceSetConfigurator = defaultSourceSetConfigurator,
         )
     }

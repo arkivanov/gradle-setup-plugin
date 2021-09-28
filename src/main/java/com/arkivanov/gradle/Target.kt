@@ -19,42 +19,22 @@ sealed class Target {
     }
 
     companion object {
-        val ALL_DEFAULT: List<Target> =
-            listOf(
-                Android,
-                Jvm,
-                Linux,
-                Ios,
-                WatchOs,
-                TvOs,
-                MacOs,
-                Js(),
-            )
-
-        internal val LINUX_SPLIT_CLASSES: List<KClass<out Target>> =
+        internal val LINUX_SPLIT_CLASSES: List<KClass<out Target>> by lazy {
             listOf(
                 Android::class,
                 Jvm::class,
                 Linux::class,
                 Js::class,
             )
+        }
 
-        internal val MACOS_SPLIT_CLASSES: List<KClass<out Target>> =
+        internal val MACOS_SPLIT_CLASSES: List<KClass<out Target>> by lazy {
             listOf(
                 Ios::class,
                 WatchOs::class,
                 TvOs::class,
                 MacOs::class,
             )
-
-        init {
-            check(ALL_DEFAULT.size == Target::class.sealedSubclasses.size) {
-                "Not all targets are listed"
-            }
-
-            check((LINUX_SPLIT_CLASSES.size + MACOS_SPLIT_CLASSES.size) == Target::class.sealedSubclasses.size) {
-                "Not all targets are listed"
-            }
         }
     }
 }
