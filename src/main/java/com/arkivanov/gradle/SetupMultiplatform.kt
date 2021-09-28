@@ -170,6 +170,10 @@ private fun Project.setupIosTarget() {
             disableCompilationsIfNeeded()
         }
 
+        iosSimulatorArm64 {
+            disableCompilationsIfNeeded()
+        }
+
         iosX64 {
             disableCompilationsIfNeeded()
         }
@@ -186,6 +190,10 @@ private fun Project.setupWatchOsTarget() {
             disableCompilationsIfNeeded()
         }
 
+        watchosSimulatorArm64 {
+            disableCompilationsIfNeeded()
+        }
+
         watchosX64 {
             disableCompilationsIfNeeded()
         }
@@ -198,6 +206,10 @@ private fun Project.setupTvOsTarget() {
             disableCompilationsIfNeeded()
         }
 
+        tvosSimulatorArm64 {
+            disableCompilationsIfNeeded()
+        }
+
         tvosX64 {
             disableCompilationsIfNeeded()
         }
@@ -206,6 +218,10 @@ private fun Project.setupTvOsTarget() {
 
 private fun Project.setupMacOsTarget() {
     kotlin {
+        macosArm64 {
+            disableCompilationsIfNeeded()
+        }
+
         macosX64 {
             disableCompilationsIfNeeded()
         }

@@ -19,15 +19,19 @@ interface SourceSetNames {
     val linuxX64: SourceSetName
 
     val iosArm64: SourceSetName
+    val iosSimulatorArm64: SourceSetName
     val iosX64: SourceSetName
 
     val watchosArm32: SourceSetName
     val watchosArm64: SourceSetName
+    val watchosSimulatorArm64: SourceSetName
     val watchosX64: SourceSetName
 
     val tvosArm64: SourceSetName
+    val tvosSimulatorArm64: SourceSetName
     val tvosX64: SourceSetName
 
+    val macosArm64: SourceSetName
     val macosX64: SourceSetName
 }
 
@@ -35,16 +39,16 @@ val SourceSetNames.javaSet: Set<SourceSetName>
     get() = setOf(android, jvm)
 
 val SourceSetNames.iosSet: Set<SourceSetName>
-    get() = setOf(iosArm64, iosX64)
+    get() = setOf(iosArm64, iosSimulatorArm64, iosX64)
 
 val SourceSetNames.watchosSet: Set<SourceSetName>
-    get() = setOf(watchosArm32, watchosArm64, watchosX64)
+    get() = setOf(watchosArm32, watchosArm64, watchosSimulatorArm64, watchosX64)
 
 val SourceSetNames.tvosSet: Set<SourceSetName>
-    get() = setOf(tvosArm64, tvosX64)
+    get() = setOf(tvosArm64, tvosSimulatorArm64, tvosX64)
 
 val SourceSetNames.macosSet: Set<SourceSetName>
-    get() = setOf(macosX64)
+    get() = setOf(macosX64, macosArm64)
 
 val SourceSetNames.darwinSet: Set<SourceSetName>
     get() = listOf(iosSet, watchosSet, tvosSet, macosSet).flatten().toSet()
@@ -61,16 +65,20 @@ internal object DefaultSourceSetNames : SourceSetNames {
     override val linuxX64: SourceSetName by named()
 
     override val iosArm64: SourceSetName by named()
+    override val iosSimulatorArm64: SourceSetName by named()
     override val iosX64: SourceSetName by named()
 
     override val watchosArm32: SourceSetName by named()
     override val watchosArm64: SourceSetName by named()
+    override val watchosSimulatorArm64: SourceSetName by named()
     override val watchosX64: SourceSetName by named()
 
     override val tvosArm64: SourceSetName by named()
+    override val tvosSimulatorArm64: SourceSetName by named()
     override val tvosX64: SourceSetName by named()
 
     override val macosX64: SourceSetName by named()
+    override val macosArm64: SourceSetName by named()
 
     private fun named(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, SourceSetName>> =
         PropertyDelegateProvider { _, property ->
