@@ -5,14 +5,18 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
-internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigurator: (SourceSetsScope.() -> Unit)?) {
+internal fun Project.setupMultiplatform(
+    targets: List<Target>,
+    androidConfig: () -> AndroidConfig,
+    sourceSetConfigurator: (SourceSetsScope.() -> Unit)?
+) {
     enabledTargets = targets
 
     doIfTargetEnabled<Target.Android> {
         setupAndroidTarget()
 
         extensions.with<BaseExtension> {
-            setupAndroid()
+            setupAndroid(androidConfig())
         }
     }
 

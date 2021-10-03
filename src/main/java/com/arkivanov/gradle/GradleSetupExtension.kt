@@ -21,6 +21,13 @@ open class GradleSetupExtension {
         )
     }
 
+    private val defaultAndroidConfig: AndroidConfig by lazy {
+        project.findDefaultConfig(
+            errorMessage = "Default Android config not set",
+            extract = GradleSetupDefaultsExtension::androidConfig,
+        )
+    }
+
     private val defaultSourceSetConfigurator: (SourceSetsScope.() -> Unit)? by lazy {
         project.findDefaultConfig(GradleSetupDefaultsExtension::multiplatformSourceSetConfigurator)
     }
@@ -28,6 +35,7 @@ open class GradleSetupExtension {
     fun multiplatform(vararg targets: Target) {
         project.setupMultiplatform(
             targets = targets.takeUnless(Array<*>::isEmpty)?.toList() ?: defaultMultiplatformTargets,
+            androidConfig = { defaultAndroidConfig },
             sourceSetConfigurator = defaultSourceSetConfigurator,
         )
     }
@@ -41,7 +49,7 @@ open class GradleSetupExtension {
     }
 
     fun androidLibrary(block: (isCompilationAllowed: Boolean) -> Unit = {}) {
-        project.setupAndroidLibrary()
+        project.setupAndroidLibrary(defaultAndroidConfig)
         block(isTargetCompilationAllowed<Target.Android>())
     }
 
@@ -51,7 +59,13 @@ open class GradleSetupExtension {
         versionName: String,
         block: (isCompilationAllowed: Boolean) -> Unit = {}
     ) {
-        project.setupAndroidApp(applicationId = applicationId, versionCode = versionCode, versionName = versionName)
+        project.setupAndroidApp(
+            config = defaultAndroidConfig,
+            applicationId = applicationId,
+            versionCode = versionCode,
+            versionName = versionName
+        )
+
         block(isTargetCompilationAllowed<Target.Android>())
     }
 

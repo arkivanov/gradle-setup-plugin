@@ -8,16 +8,17 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-internal fun Project.setupAndroidLibrary() {
-    setupAndroid<LibraryExtension>(minSdkVersion = 15)
+internal fun Project.setupAndroidLibrary(config: AndroidConfig) {
+    setupAndroid<LibraryExtension>(config)
 }
 
 internal fun Project.setupAndroidApp(
+    config: AndroidConfig,
     applicationId: String,
     versionCode: Int,
     versionName: String,
 ) {
-    setupAndroid<BaseAppModuleExtension>(minSdkVersion = 21)
+    setupAndroid<BaseAppModuleExtension>(config)
 
     project.extensions.with<BaseAppModuleExtension> {
         defaultConfig {
@@ -28,8 +29,8 @@ internal fun Project.setupAndroidApp(
     }
 }
 
-private inline fun <reified T : BaseExtension> Project.setupAndroid(minSdkVersion: Int) {
-    project.extensions.getByType<T>().setupAndroid(minSdkVersion = minSdkVersion)
+private inline fun <reified T : BaseExtension> Project.setupAndroid(config: AndroidConfig) {
+    project.extensions.getByType<T>().setupAndroid(config)
 
     project.tasks.withType<KotlinCompile> {
         enabled = isTargetCompilationAllowed<Target.Android>()
