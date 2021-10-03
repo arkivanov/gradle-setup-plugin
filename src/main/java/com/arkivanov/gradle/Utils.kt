@@ -2,6 +2,7 @@ package com.arkivanov.gradle
 
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.extra
@@ -13,6 +14,14 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetContainer
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinMultiplatformPlugin
 import kotlin.reflect.KClass
+
+internal fun Task.enableSubtree(isEnabled: Boolean) {
+    enabled = isEnabled
+
+    taskDependencies.getDependencies(null).forEach {
+        it.enableSubtree(isEnabled)
+    }
+}
 
 internal inline fun <reified T : Any> ExtensionContainer.with(block: T.() -> Unit) {
     getByType<T>().apply(block)
