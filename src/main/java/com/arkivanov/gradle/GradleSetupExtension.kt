@@ -36,6 +36,10 @@ open class GradleSetupExtension {
         project.setupMultiplatformPublications(defaultPublicationConfig)
     }
 
+    fun androidLibraryPublications() {
+        project.setupAndroidLibraryPublications(defaultPublicationConfig)
+    }
+
     fun androidLibrary(block: (isCompilationAllowed: Boolean) -> Unit = {}) {
         project.setupAndroidLibrary()
         block(isTargetCompilationAllowed<Target.Android>())
