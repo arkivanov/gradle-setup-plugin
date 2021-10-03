@@ -9,7 +9,7 @@ internal fun BaseExtension.setupAndroid(minSdkVersion: Int = 15) {
 
     defaultConfig {
         minSdkVersion(minSdkVersion)
-        targetSdkVersion(minSdkVersion)
+        targetSdkVersion(31)
     }
 
     compileOptions {
