@@ -4,12 +4,12 @@ import com.android.build.gradle.BaseExtension
 import org.gradle.api.JavaVersion
 import org.gradle.kotlin.dsl.withGroovyBuilder
 
-internal fun BaseExtension.setupAndroid() {
+internal fun BaseExtension.setupAndroid(minSdkVersion: Int = 15) {
     compileSdkVersion(31)
 
     defaultConfig {
-        minSdkVersion(15)
-        targetSdkVersion(31)
+        minSdkVersion(minSdkVersion)
+        targetSdkVersion(minSdkVersion)
     }
 
     compileOptions {
