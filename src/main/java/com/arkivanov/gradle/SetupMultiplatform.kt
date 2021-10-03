@@ -1,10 +1,9 @@
 package com.arkivanov.gradle
 
-import com.android.build.gradle.LibraryExtension
+import com.android.build.gradle.BaseExtension
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import kotlin.reflect.KClass
 
 internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigurator: (SourceSetsScope.() -> Unit)?) {
     enabledTargets = targets
@@ -12,7 +11,7 @@ internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigur
     doIfTargetEnabled<Target.Android> {
         setupAndroidTarget()
 
-        extensions.with<LibraryExtension> {
+        extensions.with<BaseExtension> {
             setupAndroid()
         }
     }
@@ -26,19 +25,19 @@ internal fun Project.setupMultiplatform(targets: List<Target>, sourceSetConfigur
     }
 
     doIfTargetEnabled<Target.Ios> {
-        setupIosTarget()
+        setupIosTarget(it)
     }
 
     doIfTargetEnabled<Target.WatchOs> {
-        setupWatchOsTarget()
+        setupWatchOsTarget(it)
     }
 
     doIfTargetEnabled<Target.TvOs> {
-        setupTvOsTarget()
+        setupTvOsTarget(it)
     }
 
     doIfTargetEnabled<Target.MacOs> {
-        setupMacOsTarget()
+        setupMacOsTarget(it)
     }
 
     doIfTargetEnabled<Target.Js> {
@@ -125,18 +124,19 @@ private fun DefaultSourceSetsScope.findLeafSourceSets(parent: SourceSetName): Se
 }
 
 private fun Project.isLeafSourceSetAllowed(leafSourceSet: SourceSetName): Boolean =
-    isTargetEnabled(getTargetClassForLeafSourceSet(leafSourceSet = leafSourceSet))
-
-private fun getTargetClassForLeafSourceSet(leafSourceSet: SourceSetName): KClass<out Target> =
     when (leafSourceSet) {
-        DefaultSourceSetNames.android -> Target.Android::class
-        DefaultSourceSetNames.jvm -> Target.Jvm::class
-        DefaultSourceSetNames.js -> Target.Js::class
-        DefaultSourceSetNames.linuxX64 -> Target.Linux::class
-        in DefaultSourceSetNames.iosSet -> Target.Ios::class
-        in DefaultSourceSetNames.watchosSet -> Target.WatchOs::class
-        in DefaultSourceSetNames.tvosSet -> Target.TvOs::class
-        in DefaultSourceSetNames.macosSet -> Target.MacOs::class
+        DefaultSourceSetNames.android -> isTargetEnabled<Target.Android>()
+        DefaultSourceSetNames.jvm -> isTargetEnabled<Target.Jvm>()
+        DefaultSourceSetNames.js -> isTargetEnabled<Target.Js>()
+        DefaultSourceSetNames.linuxX64 -> isTargetEnabled<Target.Linux>()
+        DefaultSourceSetNames.iosSimulatorArm64 -> getEnabledTarget<Target.Ios>()?.isAppleSiliconEnabled ?: false
+        in DefaultSourceSetNames.iosSet -> isTargetEnabled<Target.Ios>()
+        DefaultSourceSetNames.watchosSimulatorArm64 -> getEnabledTarget<Target.WatchOs>()?.isAppleSiliconEnabled ?: false
+        in DefaultSourceSetNames.watchosSet -> isTargetEnabled<Target.WatchOs>()
+        DefaultSourceSetNames.tvosSimulatorArm64 -> getEnabledTarget<Target.TvOs>()?.isAppleSiliconEnabled ?: false
+        in DefaultSourceSetNames.tvosSet -> isTargetEnabled<Target.TvOs>()
+        DefaultSourceSetNames.macosArm64 -> getEnabledTarget<Target.MacOs>()?.isAppleSiliconEnabled ?: false
+        in DefaultSourceSetNames.macosSet -> isTargetEnabled<Target.MacOs>()
         else -> error("No Target class found for leaf source set $leafSourceSet")
     }
 
@@ -164,14 +164,16 @@ private fun Project.setupLinuxTarget() {
     }
 }
 
-private fun Project.setupIosTarget() {
+private fun Project.setupIosTarget(target: Target.Ios) {
     kotlin {
         iosArm64 {
             disableCompilationsIfNeeded()
         }
 
-        iosSimulatorArm64 {
-            disableCompilationsIfNeeded()
+        if (target.isAppleSiliconEnabled) {
+            iosSimulatorArm64 {
+                disableCompilationsIfNeeded()
+            }
         }
 
         iosX64 {
@@ -180,7 +182,7 @@ private fun Project.setupIosTarget() {
     }
 }
 
-private fun Project.setupWatchOsTarget() {
+private fun Project.setupWatchOsTarget(target: Target.WatchOs) {
     kotlin {
         watchosArm32 {
             disableCompilationsIfNeeded()
@@ -190,8 +192,10 @@ private fun Project.setupWatchOsTarget() {
             disableCompilationsIfNeeded()
         }
 
-        watchosSimulatorArm64 {
-            disableCompilationsIfNeeded()
+        if (target.isAppleSiliconEnabled) {
+            watchosSimulatorArm64 {
+                disableCompilationsIfNeeded()
+            }
         }
 
         watchosX64 {
@@ -200,14 +204,16 @@ private fun Project.setupWatchOsTarget() {
     }
 }
 
-private fun Project.setupTvOsTarget() {
+private fun Project.setupTvOsTarget(target: Target.TvOs) {
     kotlin {
         tvosArm64 {
             disableCompilationsIfNeeded()
         }
 
-        tvosSimulatorArm64 {
-            disableCompilationsIfNeeded()
+        if (target.isAppleSiliconEnabled) {
+            tvosSimulatorArm64 {
+                disableCompilationsIfNeeded()
+            }
         }
 
         tvosX64 {
@@ -216,10 +222,12 @@ private fun Project.setupTvOsTarget() {
     }
 }
 
-private fun Project.setupMacOsTarget() {
+private fun Project.setupMacOsTarget(target: Target.MacOs) {
     kotlin {
-        macosArm64 {
-            disableCompilationsIfNeeded()
+        if (target.isAppleSiliconEnabled) {
+            macosArm64 {
+                disableCompilationsIfNeeded()
+            }
         }
 
         macosX64 {

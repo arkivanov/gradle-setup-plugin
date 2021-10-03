@@ -7,10 +7,10 @@ sealed class Target {
     object Android : Target()
     object Jvm : Target()
     object Linux : Target()
-    object Ios : Target()
-    object WatchOs : Target()
-    object TvOs : Target()
-    object MacOs : Target()
+    class Ios(val isAppleSiliconEnabled: Boolean = true) : Target()
+    class WatchOs(val isAppleSiliconEnabled: Boolean = true) : Target()
+    class TvOs(val isAppleSiliconEnabled: Boolean = true) : Target()
+    class MacOs(val isAppleSiliconEnabled: Boolean = true) : Target()
 
     class Js(val mode: Mode = Mode.BOTH) : Target() {
         enum class Mode {

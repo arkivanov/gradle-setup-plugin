@@ -27,11 +27,16 @@ internal fun KotlinSourceSetContainer.sourceSets(block: NamedDomainObjectContain
 }
 
 internal inline fun <reified T : Target> Project.doIfTargetEnabled(block: (T) -> Unit) {
+    getEnabledTarget<T>()?.also(block)
+}
+
+internal inline fun <reified T : Target> Project.getEnabledTarget(): T? =
     enabledTargets
         .filterIsInstance<T>()
         .singleOrNull()
-        ?.also(block)
-}
+
+internal inline fun <reified T : Target> Project.isTargetEnabled(): Boolean =
+    isTargetEnabled(T::class)
 
 internal fun Project.isTargetEnabled(clazz: KClass<out Target>): Boolean =
     enabledTargets.any { it::class == clazz }
