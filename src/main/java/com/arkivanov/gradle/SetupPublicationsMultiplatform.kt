@@ -33,7 +33,7 @@ internal fun Project.setupMultiplatformPublications(config: PublicationConfig) {
 }
 
 private fun Project.enablePublicationTasks() {
-    val isMetadataOnly: Boolean? = System.getProperty("metadata_only")?.let(String::toBoolean)
+    val isMetadataOnly: Boolean = System.getProperty("metadata_only") != null
     val targets = extensions.getByType<KotlinMultiplatformExtension>().targets
 
     tasks.withType<AbstractPublishToMaven>().configureEach {
@@ -41,18 +41,18 @@ private fun Project.enablePublicationTasks() {
 
         enabled =
             when {
-                publicationName == "kotlinMultiplatform" -> isMetadataOnly != false
+                publicationName == "kotlinMultiplatform" -> isMetadataOnly
 
                 publicationName != null -> {
                     val target = targets.find { it.name.startsWith(publicationName) }
                     checkNotNull(target) { "Target not found for publication $publicationName" }
-                    (isMetadataOnly != true) && target.isCompilationAllowed
+                    !isMetadataOnly && target.isCompilationAllowed
                 }
 
                 else -> {
                     val target = targets.find { name.contains(other = it.name, ignoreCase = true) }
                     checkNotNull(target) { "Target not found for publication $this" }
-                    (isMetadataOnly != true) && target.isCompilationAllowed
+                    !isMetadataOnly && target.isCompilationAllowed
                 }
             }
 
