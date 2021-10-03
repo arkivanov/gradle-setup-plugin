@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30")
-    compileOnly("com.android.tools.build:gradle:4.2.0")
+    compileOnly("com.android.tools.build:gradle:7.0.1")
     compileOnly("gradle.plugin.org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.4.18")
     testImplementation(kotlin("test"))
 }
