@@ -16,8 +16,8 @@ internal fun Project.setupMultiplatformPublications(config: PublicationConfig) {
     version = config.version
 
     publishing {
-        publications.withType<MavenPublication>().forEach {
-            it.setupPublicationPom(project, config)
+        publications.withType<MavenPublication>().configureEach {
+            setupPublicationPom(project, config)
         }
     }
 
