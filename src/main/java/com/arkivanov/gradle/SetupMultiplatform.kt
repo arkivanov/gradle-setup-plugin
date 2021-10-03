@@ -1,6 +1,5 @@
 package com.arkivanov.gradle
 
-import com.android.build.gradle.BaseExtension
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -14,10 +13,7 @@ internal fun Project.setupMultiplatform(
 
     doIfTargetEnabled<Target.Android> {
         setupAndroidTarget()
-
-        extensions.with<BaseExtension> {
-            setupAndroid(androidConfig())
-        }
+        setupAndroidCommon(androidConfig())
     }
 
     doIfTargetEnabled<Target.Jvm> {
