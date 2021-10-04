@@ -39,28 +39,33 @@ private fun Project.enablePublicationTasks() {
 
     tasks.withType<AbstractPublishToMaven>().configureEach {
         val isAllowed = isAllowed(targets)
-        enableSubtree(isEnabled = isAllowed)
+
+        if (!isAllowed) {
+            enabled = false
+        }
+
         println("Publication $this enabled=$isAllowed")
     }
 }
 
 private fun AbstractPublishToMaven.isAllowed(targets: NamedDomainObjectCollection<KotlinTarget>): Boolean {
-    val isMetadataOnly = System.getProperty("metadata_only") != null
-    val publicationName = publication?.name
+    val publicationName: String? = publication?.name
 
     return when {
-        publicationName == "kotlinMultiplatform" -> isMetadataOnly
+        publicationName == "kotlinMultiplatform" -> EnvParams.metadataOnly || !EnvParams.splitTargets
+
+        EnvParams.metadataOnly -> false
 
         publicationName != null -> {
             val target = targets.find { it.name.startsWith(publicationName) }
             checkNotNull(target) { "Target not found for publication $publicationName" }
-            !isMetadataOnly && target.isCompilationAllowed
+            target.isCompilationAllowed
         }
 
         else -> {
             val target = targets.find { name.contains(other = it.name, ignoreCase = true) }
             checkNotNull(target) { "Target not found for publication $this" }
-            !isMetadataOnly && target.isCompilationAllowed
+            target.isCompilationAllowed
         }
     }
 }
