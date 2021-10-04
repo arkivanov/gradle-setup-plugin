@@ -18,35 +18,50 @@ internal fun Project.ensureUnreachableTasksDisabled() {
     extra.set(PROPERTY_NAME, true)
 
     gradle.taskGraph.whenReady {
-        allTasks
-            .filterNot { it.enabled }
-            .forEach { disableChildren(it, logger) }
+        DisableTasks(graph = this, logger = logger)
+            .disableTasks()
     }
 }
 
-private fun TaskExecutionGraph.disableChildren(task: Task, logger: Logger) {
-    getDependencies(task).forEach { child ->
-        if (child.enabled) {
-            if (!isTaskAccessible(child)) {
-                child.enabled = false
-                logger.info("Task disabled: ${child.path}")
-                disableChildren(child, logger)
+private class DisableTasks(
+    private val graph: TaskExecutionGraph,
+    private val logger: Logger,
+) {
+    private val results = HashMap<Pair<Task, Task>, Boolean>()
+
+    fun disableTasks() {
+        graph
+            .allTasks
+            .filterNot { it.enabled }
+            .forEach { disableChildren(it) }
+    }
+
+    private fun disableChildren(task: Task) {
+        graph.getDependencies(task).forEach { child ->
+            if (child.enabled) {
+                if (!isTaskAccessible(task = child)) {
+                    child.enabled = false
+                    logger.info("Task disabled: ${child.path}")
+                    disableChildren(task = child)
+                } else {
+                    logger.info("Task accessible: ${child.path}")
+                }
             } else {
-                logger.info("Task accessible: ${child.path}")
+                logger.info("Task already disabled: ${child.path}")
+                disableChildren(task = child)
             }
-        } else {
-            logger.info("Task already disabled: ${child.path}")
-            disableChildren(child, logger)
         }
     }
+
+    private fun isTaskAccessible(task: Task): Boolean =
+        graph.allTasks.any { (it != task) && isPathExists(source = it, destination = task) }
+
+    private fun isPathExists(source: Task, destination: Task): Boolean =
+        results.getOrPut(source to destination) {
+            when {
+                !source.enabled -> false
+                source == destination -> true
+                else -> graph.getDependencies(source).any { isPathExists(source = it, destination = destination) }
+            }
+        }
 }
-
-private fun TaskExecutionGraph.isTaskAccessible(task: Task): Boolean =
-    allTasks.any { (it != task) && isPathExists(source = it, destination = task) }
-
-private fun TaskExecutionGraph.isPathExists(source: Task, destination: Task): Boolean =
-    when {
-        !source.enabled -> false
-        source == destination -> true
-        else -> getDependencies(source).any { isPathExists(source = it, destination = destination) }
-    }
