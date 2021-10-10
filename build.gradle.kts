@@ -17,6 +17,7 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30")
     compileOnly("com.android.tools.build:gradle:7.0.1")
     compileOnly("gradle.plugin.org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.4.18")
+    compileOnly("org.jetbrains.kotlinx.binary-compatibility-validator:org.jetbrains.kotlinx.binary-compatibility-validator.gradle.plugin:0.8.0-RC")
     testImplementation(kotlin("test"))
 }
 
