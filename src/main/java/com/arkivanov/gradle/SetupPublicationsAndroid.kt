@@ -25,14 +25,14 @@ internal fun Project.setupAndroidLibraryPublications(config: PublicationConfig) 
         archiveClassifier.set("source")
     }
 
-    fun PublicationContainer.createMavenPublication(name: String) {
+    fun PublicationContainer.createMavenPublication(name: String, artifactIdSuffix: String) {
         create<MavenPublication>(name) {
             from(components[name])
             artifact(sourceJarTask)
 
             groupId = config.group
             version = config.version
-            artifactId = "${project.name}-$name"
+            artifactId = "${project.name}$artifactIdSuffix"
 
             setupPublicationPom(project, config)
         }
@@ -41,8 +41,8 @@ internal fun Project.setupAndroidLibraryPublications(config: PublicationConfig) 
     afterEvaluate {
         publishing {
             publications {
-                createMavenPublication(name = "debug")
-                createMavenPublication(name = "release")
+                createMavenPublication(name = "debug", artifactIdSuffix = "-debug")
+                createMavenPublication(name = "release", artifactIdSuffix = "")
             }
         }
     }
