@@ -27,7 +27,25 @@ private class DisableTasks(
     private val graph: TaskExecutionGraph,
     private val logger: Logger,
 ) {
+    private val rootTasks = findRootTasks()
     private val results = HashMap<Pair<Task, Task>, Boolean>()
+
+    private fun findRootTasks(): List<Task> {
+        val rootTasks = ArrayList<Task>()
+
+        val children = HashSet<Task>()
+        graph.allTasks.forEach {
+            children += graph.getDependencies(it)
+        }
+
+        graph.allTasks.forEach {
+            if (it !in children) {
+                rootTasks += it
+            }
+        }
+
+        return rootTasks
+    }
 
     fun disableTasks() {
         graph
@@ -54,7 +72,7 @@ private class DisableTasks(
     }
 
     private fun isTaskAccessible(task: Task): Boolean =
-        graph.allTasks.any {
+        rootTasks.any {
             val isPathExists = (it != task) && isPathExists(source = it, destination = task)
 
             if (isPathExists) {
