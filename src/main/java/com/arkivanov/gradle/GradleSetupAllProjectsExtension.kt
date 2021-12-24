@@ -1,6 +1,6 @@
 package com.arkivanov.gradle
 
-open class GradleSetupDefaultsExtension {
+open class GradleSetupAllProjectsExtension : GradleSetupExtensionBase() {
 
     internal var publicationConfig: PublicationConfig? = null
         private set
@@ -32,5 +32,9 @@ open class GradleSetupDefaultsExtension {
 
     fun multiplatformSourceSets(block: SourceSetsScope.() -> Unit) {
         multiplatformSourceSetConfigurator = block
+    }
+
+    fun detekt() {
+        project.setupDetekt()
     }
 }

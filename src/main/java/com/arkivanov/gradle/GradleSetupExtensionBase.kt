@@ -10,35 +10,34 @@ open class GradleSetupExtensionBase {
     protected val defaultPublicationConfig: PublicationConfig by lazy {
         project.findDefaultConfig(
             errorMessage = "Default publication config not set",
-            extract = GradleSetupDefaultsExtension::publicationConfig,
+            extract = GradleSetupAllProjectsExtension::publicationConfig,
         )
     }
 
     protected val defaultMultiplatformTargets: List<Target> by lazy {
         project.findDefaultConfig(
             errorMessage = "Default multiplatform targets not set",
-            extract = GradleSetupDefaultsExtension::multiplatformTargets,
+            extract = GradleSetupAllProjectsExtension::multiplatformTargets,
         )
     }
 
     protected val defaultAndroidConfig: AndroidConfig by lazy {
         project.findDefaultConfig(
             errorMessage = "Default Android config not set",
-            extract = GradleSetupDefaultsExtension::androidConfig,
+            extract = GradleSetupAllProjectsExtension::androidConfig,
         )
     }
 
     protected val defaultSourceSetConfigurator: (SourceSetsScope.() -> Unit)? by lazy {
-        project.findDefaultConfig(GradleSetupDefaultsExtension::multiplatformSourceSetConfigurator)
+        project.findDefaultConfig(GradleSetupAllProjectsExtension::multiplatformSourceSetConfigurator)
     }
 
     private companion object {
-        private fun <T : Any> Project.findDefaultConfig(errorMessage: String, extract: (GradleSetupDefaultsExtension) -> T?): T =
+        private fun <T : Any> Project.findDefaultConfig(errorMessage: String, extract: (GradleSetupAllProjectsExtension) -> T?): T =
             findDefaultConfig(extract)
                 ?: error(errorMessage)
 
-        private fun <T : Any> Project.findDefaultConfig(extract: (GradleSetupDefaultsExtension) -> T?): T? =
-            project.extensions.findByType<GradleSetupDefaultsExtension>()?.let(extract)
-                ?: project.rootProject.extensions.findByType<GradleSetupDefaultsExtension>()?.let(extract)
+        private fun <T : Any> Project.findDefaultConfig(extract: (GradleSetupAllProjectsExtension) -> T?): T? =
+            project.rootProject.extensions.findByType<GradleSetupAllProjectsExtension>()?.let(extract)
     }
 }
