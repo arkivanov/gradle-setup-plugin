@@ -39,11 +39,11 @@ internal fun Project.setupIdeaPlugin(
     }
 
     tasks.withType<PatchPluginXmlTask>().configureEach {
-        sinceBuild(sinceBuild)
+        this.sinceBuild.set(sinceBuild)
     }
 
     extensions.with<IntelliJPluginExtension> {
-        this.version = intellijVersion
-        updateSinceUntilBuild = false
+        this.version.set(intellijVersion)
+        this.updateSinceUntilBuild.set(false)
     }
 }
