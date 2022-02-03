@@ -12,9 +12,21 @@ sealed class Target {
     class TvOs(val isAppleSiliconEnabled: Boolean = true) : Target()
     class MacOs(val isAppleSiliconEnabled: Boolean = true) : Target()
 
-    class Js(val mode: Mode = Mode.BOTH) : Target() {
+    class Js(
+        val mode: Mode = Mode.BOTH,
+        val environments: Set<Environment> = Environment.values().toSet(),
+        val binary: Binary = Binary.NONE,
+    ) : Target() {
         enum class Mode {
             BOTH, IR, LEGACY
+        }
+
+        enum class Environment {
+            BROWSER, NODE_JS
+        }
+
+        enum class Binary {
+            NONE, EXECUTABLE, LIBRARY
         }
     }
 

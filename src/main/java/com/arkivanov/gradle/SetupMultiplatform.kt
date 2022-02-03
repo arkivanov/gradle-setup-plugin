@@ -41,7 +41,7 @@ internal fun Project.setupMultiplatform(
     }
 
     doIfTargetEnabled<Target.Js> {
-        setupJsTarget(mode = it.mode)
+        setupJsTarget(it)
     }
 
     setupSourceSets(sourceSetConfigurator)
@@ -236,17 +236,27 @@ private fun Project.setupMacOsTarget(target: Target.MacOs) {
     }
 }
 
-private fun Project.setupJsTarget(mode: Target.Js.Mode) {
+private fun Project.setupJsTarget(target: Target.Js) {
     kotlin {
         js(
-            when (mode) {
+            when (target.mode) {
                 Target.Js.Mode.BOTH -> BOTH
                 Target.Js.Mode.IR -> IR
                 Target.Js.Mode.LEGACY -> LEGACY
             }
         ) {
-            browser()
-            nodejs()
+            target.environments.forEach {
+                when (it) {
+                    Target.Js.Environment.BROWSER -> browser()
+                    Target.Js.Environment.NODE_JS -> nodejs()
+                }.let {}
+            }
+
+            when (target.binary) {
+                Target.Js.Binary.NONE -> Unit
+                Target.Js.Binary.EXECUTABLE -> binaries.executable()
+                Target.Js.Binary.LIBRARY -> binaries.library()
+            }
 
             disableCompilationsIfNeeded()
         }

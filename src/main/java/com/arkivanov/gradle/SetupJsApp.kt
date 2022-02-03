@@ -6,9 +6,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJsProjectExtension
 internal fun Project.setupJsApp() {
     extensions.with<KotlinJsProjectExtension> {
         js(IR) {
-            browser {
-                binaries.executable()
-            }
+            browser()
+            binaries.executable()
 
             disableCompilationsIfNeeded()
         }
