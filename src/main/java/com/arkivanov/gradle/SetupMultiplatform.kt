@@ -129,13 +129,21 @@ private fun Project.isLeafSourceSetAllowed(leafSourceSet: SourceSetName): Boolea
         DefaultSourceSetNames.jvm -> isTargetEnabled<Target.Jvm>()
         DefaultSourceSetNames.js -> isTargetEnabled<Target.Js>()
         DefaultSourceSetNames.linuxX64 -> isTargetEnabled<Target.Linux>()
-        DefaultSourceSetNames.iosSimulatorArm64 -> getEnabledTarget<Target.Ios>()?.isAppleSiliconEnabled ?: false
+        DefaultSourceSetNames.iosX64 -> getEnabledTarget<Target.Ios>()?.x64 ?: false
+        DefaultSourceSetNames.iosArm64 -> getEnabledTarget<Target.Ios>()?.arm64 ?: false
+        DefaultSourceSetNames.iosSimulatorArm64 -> getEnabledTarget<Target.Ios>()?.simulatorArm64 ?: false
         in DefaultSourceSetNames.iosSet -> isTargetEnabled<Target.Ios>()
-        DefaultSourceSetNames.watchosSimulatorArm64 -> getEnabledTarget<Target.WatchOs>()?.isAppleSiliconEnabled ?: false
+        DefaultSourceSetNames.watchosX64 -> getEnabledTarget<Target.WatchOs>()?.x64 ?: false
+        DefaultSourceSetNames.watchosArm32 -> getEnabledTarget<Target.WatchOs>()?.arm32 ?: false
+        DefaultSourceSetNames.watchosArm64 -> getEnabledTarget<Target.WatchOs>()?.arm64 ?: false
+        DefaultSourceSetNames.watchosSimulatorArm64 -> getEnabledTarget<Target.WatchOs>()?.simulatorArm64 ?: false
         in DefaultSourceSetNames.watchosSet -> isTargetEnabled<Target.WatchOs>()
-        DefaultSourceSetNames.tvosSimulatorArm64 -> getEnabledTarget<Target.TvOs>()?.isAppleSiliconEnabled ?: false
+        DefaultSourceSetNames.tvosX64 -> getEnabledTarget<Target.TvOs>()?.x64 ?: false
+        DefaultSourceSetNames.tvosArm64 -> getEnabledTarget<Target.TvOs>()?.arm64 ?: false
+        DefaultSourceSetNames.tvosSimulatorArm64 -> getEnabledTarget<Target.TvOs>()?.simulatorArm64 ?: false
         in DefaultSourceSetNames.tvosSet -> isTargetEnabled<Target.TvOs>()
-        DefaultSourceSetNames.macosArm64 -> getEnabledTarget<Target.MacOs>()?.isAppleSiliconEnabled ?: false
+        DefaultSourceSetNames.macosX64 -> getEnabledTarget<Target.MacOs>()?.x64 ?: false
+        DefaultSourceSetNames.macosArm64 -> getEnabledTarget<Target.MacOs>()?.arm64 ?: false
         in DefaultSourceSetNames.macosSet -> isTargetEnabled<Target.MacOs>()
         else -> error("No Target class found for leaf source set $leafSourceSet")
     }
@@ -166,72 +174,88 @@ private fun Project.setupLinuxTarget() {
 
 private fun Project.setupIosTarget(target: Target.Ios) {
     kotlin {
-        iosArm64 {
-            disableCompilationsIfNeeded()
+        if (target.arm64) {
+            iosArm64 {
+                disableCompilationsIfNeeded()
+            }
         }
 
-        if (target.isAppleSiliconEnabled) {
+        if (target.simulatorArm64) {
             iosSimulatorArm64 {
                 disableCompilationsIfNeeded()
             }
         }
 
-        iosX64 {
-            disableCompilationsIfNeeded()
+        if (target.x64) {
+            iosX64 {
+                disableCompilationsIfNeeded()
+            }
         }
     }
 }
 
 private fun Project.setupWatchOsTarget(target: Target.WatchOs) {
     kotlin {
-        watchosArm32 {
-            disableCompilationsIfNeeded()
+        if (target.arm32) {
+            watchosArm32 {
+                disableCompilationsIfNeeded()
+            }
         }
 
-        watchosArm64 {
-            disableCompilationsIfNeeded()
+        if (target.arm64) {
+            watchosArm64 {
+                disableCompilationsIfNeeded()
+            }
         }
 
-        if (target.isAppleSiliconEnabled) {
+        if (target.simulatorArm64) {
             watchosSimulatorArm64 {
                 disableCompilationsIfNeeded()
             }
         }
 
-        watchosX64 {
-            disableCompilationsIfNeeded()
+        if (target.x64) {
+            watchosX64 {
+                disableCompilationsIfNeeded()
+            }
         }
     }
 }
 
 private fun Project.setupTvOsTarget(target: Target.TvOs) {
     kotlin {
-        tvosArm64 {
-            disableCompilationsIfNeeded()
+        if (target.arm64) {
+            tvosArm64 {
+                disableCompilationsIfNeeded()
+            }
         }
 
-        if (target.isAppleSiliconEnabled) {
+        if (target.simulatorArm64) {
             tvosSimulatorArm64 {
                 disableCompilationsIfNeeded()
             }
         }
 
-        tvosX64 {
-            disableCompilationsIfNeeded()
+        if (target.x64) {
+            tvosX64 {
+                disableCompilationsIfNeeded()
+            }
         }
     }
 }
 
 private fun Project.setupMacOsTarget(target: Target.MacOs) {
     kotlin {
-        if (target.isAppleSiliconEnabled) {
+        if (target.arm64) {
             macosArm64 {
                 disableCompilationsIfNeeded()
             }
         }
 
-        macosX64 {
-            disableCompilationsIfNeeded()
+        if (target.x64) {
+            macosX64 {
+                disableCompilationsIfNeeded()
+            }
         }
     }
 }

@@ -7,10 +7,30 @@ sealed class Target {
     object Android : Target()
     object Jvm : Target()
     object Linux : Target()
-    class Ios(val isAppleSiliconEnabled: Boolean = true) : Target()
-    class WatchOs(val isAppleSiliconEnabled: Boolean = true) : Target()
-    class TvOs(val isAppleSiliconEnabled: Boolean = true) : Target()
-    class MacOs(val isAppleSiliconEnabled: Boolean = true) : Target()
+
+    class Ios(
+        val x64: Boolean = true,
+        val arm64: Boolean = true,
+        val simulatorArm64: Boolean = true,
+    ) : Target()
+
+    class WatchOs(
+        val x64: Boolean = true,
+        val arm32: Boolean = true,
+        val arm64: Boolean = true,
+        val simulatorArm64: Boolean = true,
+    ) : Target()
+
+    class TvOs(
+        val x64: Boolean = true,
+        val arm64: Boolean = true,
+        val simulatorArm64: Boolean = true,
+    ) : Target()
+
+    class MacOs(
+        val x64: Boolean = true,
+        val arm64: Boolean = true,
+    ) : Target()
 
     class Js(
         val mode: Mode = Mode.BOTH,
