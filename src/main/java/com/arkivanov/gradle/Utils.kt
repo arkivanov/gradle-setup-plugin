@@ -78,7 +78,8 @@ private val KotlinTarget.targetClass: KClass<out Target>?
                     name.startsWith(prefix = requireNotNull(clazz.simpleName), ignoreCase = true)
                 }
 
-            KotlinPlatformType.common -> null
+            KotlinPlatformType.common,
+            KotlinPlatformType.wasm -> null
         }
 
 internal inline fun <reified T : Target> isTargetCompilationAllowed(): Boolean = isTargetCompilationAllowed(T::class)

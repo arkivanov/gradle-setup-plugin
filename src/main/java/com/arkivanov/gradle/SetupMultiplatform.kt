@@ -84,20 +84,10 @@ private fun Project.configureSourceSets(scope: DefaultSourceSetsScope) {
     val kotlinSourceSets = extensions.getByType<KotlinMultiplatformExtension>().sourceSets
 
     scope.connections.forEach { (child, parent) ->
-        val parentLeaves = scope.findLeafSourceSets(parent = parent)
-
-        // We can't create an unconnected source set, should be fixed in Kotlin 1.6.0
-
-        if (parentLeaves.any(::isLeafSourceSetAllowed)) {
-            val parentMain = kotlinSourceSets.maybeCreate(parent.main)
-            val parentTest = kotlinSourceSets.maybeCreate(parent.test)
-
-            val childLeaves = scope.findLeafSourceSets(parent = child)
-            if (childLeaves.any(::isLeafSourceSetAllowed)) {
-                kotlinSourceSets.maybeCreate(child.main).dependsOn(parentMain)
-                kotlinSourceSets.maybeCreate(child.test).dependsOn(parentTest)
-            }
-        }
+        val parentMain = kotlinSourceSets.maybeCreate(parent.main)
+        val parentTest = kotlinSourceSets.maybeCreate(parent.test)
+        kotlinSourceSets.maybeCreate(child.main).dependsOn(parentMain)
+        kotlinSourceSets.maybeCreate(child.test).dependsOn(parentTest)
     }
 }
 
