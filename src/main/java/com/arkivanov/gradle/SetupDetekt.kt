@@ -3,14 +3,17 @@ package com.arkivanov.gradle
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
-internal fun Project.setupDetekt() {
+fun Project.setupDetekt() {
+    checkIsRootProject()
+
     allprojects {
         plugins.apply("io.gitlab.arturbosch.detekt")
 
-        extensions.with<DetektExtension> {
+        extensions.configure<DetektExtension> {
             parallel = true
             buildUponDefaultConfig = true
             config = files("$rootDir/detekt.yml")

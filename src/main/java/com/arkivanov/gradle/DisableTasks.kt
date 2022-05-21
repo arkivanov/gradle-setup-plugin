@@ -8,8 +8,8 @@ import org.gradle.kotlin.dsl.extra
 
 private const val PROPERTY_NAME = "com.arkivanov.gradle.disableTasks"
 
-internal fun Project.ensureUnreachableTasksDisabled() {
-    require(rootProject == this) { "Must be called on a root project" }
+fun Project.ensureUnreachableTasksDisabled() {
+    checkIsRootProject()
 
     if (extra.has(PROPERTY_NAME)) {
         return

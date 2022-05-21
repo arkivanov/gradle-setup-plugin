@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21")
+    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10")
     compileOnly("com.android.tools.build:gradle:7.1.0")
     compileOnly("org.jetbrains.intellij.plugins:gradle-intellij-plugin:1.3.1")
     compileOnly("org.jetbrains.kotlinx.binary-compatibility-validator:org.jetbrains.kotlinx.binary-compatibility-validator.gradle.plugin:0.8.0")

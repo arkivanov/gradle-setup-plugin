@@ -3,6 +3,7 @@ package com.arkivanov.gradle
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.intellij.IntelliJPluginExtension
 import org.jetbrains.intellij.tasks.BuildSearchableOptionsTask
@@ -10,7 +11,7 @@ import org.jetbrains.intellij.tasks.PatchPluginXmlTask
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-internal fun Project.setupIdeaPlugin(
+fun Project.setupIdeaPlugin(
     group: String,
     version: String,
     sinceBuild: String,
@@ -19,15 +20,15 @@ internal fun Project.setupIdeaPlugin(
     this.group = group
     this.version = version
 
-    extensions.with<KotlinJvmProjectExtension> {
-        target.disableCompilationsIfNeeded()
+    extensions.configure<KotlinJvmProjectExtension> {
+        disableCompilationsOfNeeded()
 
         tasks.withType<BuildSearchableOptionsTask>().configureEach {
-            enabled = target.isCompilationAllowed
+            enabled = Compilations.isGenericEnabled
         }
     }
 
-    extensions.with<JavaPluginExtension> {
+    extensions.configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -42,7 +43,7 @@ internal fun Project.setupIdeaPlugin(
         this.sinceBuild.set(sinceBuild)
     }
 
-    extensions.with<IntelliJPluginExtension> {
+    extensions.configure<IntelliJPluginExtension> {
         this.version.set(intellijVersion)
         this.updateSinceUntilBuild.set(false)
     }

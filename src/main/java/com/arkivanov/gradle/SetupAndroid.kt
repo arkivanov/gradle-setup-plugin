@@ -1,25 +1,28 @@
 package com.arkivanov.gradle
 
 import com.android.build.gradle.BaseExtension
-import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
+import com.android.build.gradle.internal.lint.AndroidLintTask
+import com.android.build.gradle.internal.lint.AndroidLintTextOutputTask
+import org.gradle.api.JavaVersion
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.withGroovyBuilder
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-internal fun Project.setupAndroidLibrary(config: AndroidConfig) {
-    setupAndroid<LibraryExtension>(config)
+fun Project.setupAndroidLibrary() {
+    setupAndroid(requireDefaults())
 }
 
-internal fun Project.setupAndroidApp(
-    config: AndroidConfig,
+fun Project.setupAndroidApp(
     applicationId: String,
     versionCode: Int,
     versionName: String,
 ) {
-    setupAndroid<BaseAppModuleExtension>(config)
+    setupAndroid(requireDefaults())
 
-    project.extensions.with<BaseAppModuleExtension> {
+    extensions.configure<BaseAppModuleExtension> {
         defaultConfig {
             this.applicationId = applicationId
             this.versionCode = versionCode
@@ -28,10 +31,40 @@ internal fun Project.setupAndroidApp(
     }
 }
 
-private inline fun <reified T : BaseExtension> Project.setupAndroid(config: AndroidConfig) {
+private fun Project.setupAndroid(config: AndroidConfig) {
     setupAndroidCommon(config)
 
     project.tasks.withType<KotlinCompile> {
-        enabled = isTargetCompilationAllowed<Target.Android>()
+        enabled = Compilations.isGenericEnabled
+    }
+}
+
+internal fun Project.setupAndroidCommon(config: AndroidConfig) {
+    extensions.configure<BaseExtension> {
+        compileSdkVersion(config.compileSdkVersion)
+
+        defaultConfig {
+            minSdk = config.minSdkVersion
+            targetSdk = config.targetSdkVersion
+        }
+
+        compileOptions {
+            sourceCompatibility(JavaVersion.VERSION_1_8)
+            targetCompatibility(JavaVersion.VERSION_1_8)
+        }
+
+        withGroovyBuilder {
+            "kotlinOptions" {
+                setProperty("jvmTarget", "1.8")
+            }
+        }
+    }
+
+    tasks.withType<AndroidLintTask> {
+        enabled = Compilations.isGenericEnabled
+    }
+
+    tasks.withType<AndroidLintTextOutputTask> {
+        enabled = Compilations.isGenericEnabled
     }
 }

@@ -1,278 +1,221 @@
 package com.arkivanov.gradle
 
+import org.gradle.api.NamedDomainObjectCollection
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
-import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
+import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.konan.target.Family
+import kotlin.properties.PropertyDelegateProvider
+import kotlin.properties.ReadOnlyProperty
 
-internal fun Project.setupMultiplatform(
-    targets: List<Target>,
-    androidConfig: () -> AndroidConfig,
-    sourceSetConfigurator: (SourceSetsScope.() -> Unit)?
+fun Project.setupMultiplatform(
+    targets: MultiplatformConfigurator = requireDefaults(),
 ) {
-    enabledTargets = targets
+    multiplatformExtension.apply {
+        with(targets) { invoke() }
 
-    doIfTargetEnabled<Target.Android> {
-        setupAndroidTarget()
-        setupAndroidCommon(androidConfig())
-    }
-
-    doIfTargetEnabled<Target.Jvm> {
-        setupJvmTarget()
-    }
-
-    doIfTargetEnabled<Target.Linux> {
-        setupLinuxTarget()
-    }
-
-    doIfTargetEnabled<Target.Ios> {
-        setupIosTarget(it)
-    }
-
-    doIfTargetEnabled<Target.WatchOs> {
-        setupWatchOsTarget(it)
-    }
-
-    doIfTargetEnabled<Target.TvOs> {
-        setupTvOsTarget(it)
-    }
-
-    doIfTargetEnabled<Target.MacOs> {
-        setupMacOsTarget(it)
-    }
-
-    doIfTargetEnabled<Target.Js> {
-        setupJsTarget(it)
-    }
-
-    setupSourceSets(sourceSetConfigurator)
-
-    println("Enabled targets for $this:")
-    extensions.getByType<KotlinMultiplatformExtension>().targets.forEach {
-        println("$it, compilation allowed: ${it.isCompilationAllowed}")
-    }
-}
-
-private fun Project.setupSourceSets(configurator: (SourceSetsScope.() -> Unit)?) {
-    kotlin {
-        sourceSets {
-            getByName("commonMain") {
-                dependencies {
-                    implementation(kotlin("stdlib"))
-                }
+        setupSourceSets {
+            common.main.dependencies {
+                implementation(kotlin("stdlib"))
             }
 
-            getByName("commonTest") {
-                dependencies {
-                    implementation(kotlin("test"))
-                }
-            }
-
-            if (configurator != null) {
-                configureSourceSets(configurator)
+            common.test.dependencies {
+                implementation(kotlin("test"))
             }
         }
+
+        disableCompilationsOfNeeded()
+    }
+
+    if (isMultiplatformTargetEnabled(Target.ANDROID)) {
+        setupAndroidCommon(requireDefaults())
     }
 }
 
-private fun Project.configureSourceSets(configurator: SourceSetsScope.() -> Unit) {
-    val scope = DefaultSourceSetsScope()
-    scope.configurator()
-    configureSourceSets(scope)
+fun KotlinMultiplatformExtension.setupSourceSets(block: MultiplatformSourceSets.() -> Unit) {
+    DefaultMultiplatformSourceSets(targets, sourceSets).block()
 }
 
-private fun Project.configureSourceSets(scope: DefaultSourceSetsScope) {
-    val kotlinSourceSets = extensions.getByType<KotlinMultiplatformExtension>().sourceSets
-
-    scope.connections.forEach { (child, parent) ->
-        val parentMain = kotlinSourceSets.maybeCreate(parent.main)
-        val parentTest = kotlinSourceSets.maybeCreate(parent.test)
-        kotlinSourceSets.maybeCreate(child.main).dependsOn(parentMain)
-        kotlinSourceSets.maybeCreate(child.test).dependsOn(parentTest)
-    }
+fun interface MultiplatformConfigurator {
+    operator fun KotlinMultiplatformExtension.invoke()
 }
 
-private fun DefaultSourceSetsScope.findLeafSourceSets(parent: SourceSetName): Set<SourceSetName> {
-    val set = HashSet<SourceSetName>()
+internal enum class Target {
+    ANDROID,
+    JVM,
+}
 
-    connections.forEach { (a, b) ->
-        if (b == parent) {
-            val leaves = findLeafSourceSets(parent = a)
-
-            if (leaves.isEmpty()) {
-                set += a
-            } else {
-                set += leaves
-            }
+internal fun Project.isMultiplatformTargetEnabled(target: Target): Boolean =
+    multiplatformExtension.targets.any {
+        when (it.platformType) {
+            KotlinPlatformType.androidJvm -> target == Target.ANDROID
+            KotlinPlatformType.jvm -> target == Target.JVM
+            KotlinPlatformType.common,
+            KotlinPlatformType.js,
+            KotlinPlatformType.native -> false
+//            KotlinPlatformType.wasm -> false
         }
     }
 
-    if (set.isEmpty()) {
-        set += parent
-    }
+interface MultiplatformSourceSets : NamedDomainObjectContainer<KotlinSourceSet> {
 
-    return set
+    val common: SourceSetBundle
+    val allSet: Set<SourceSetBundle>
+    val javaSet: Set<SourceSetBundle>
+    val nativeSet: Set<SourceSetBundle>
+    val linuxSet: Set<SourceSetBundle>
+    val darwinSet: Set<SourceSetBundle>
+    val iosSet: Set<SourceSetBundle>
+    val watchosSet: Set<SourceSetBundle>
+    val tvosSet: Set<SourceSetBundle>
+    val macosSet: Set<SourceSetBundle>
 }
 
-private fun Project.isLeafSourceSetAllowed(leafSourceSet: SourceSetName): Boolean =
-    when (leafSourceSet) {
-        DefaultSourceSetNames.android -> isTargetEnabled<Target.Android>()
-        DefaultSourceSetNames.jvm -> isTargetEnabled<Target.Jvm>()
-        DefaultSourceSetNames.js -> isTargetEnabled<Target.Js>()
-        DefaultSourceSetNames.linuxX64 -> isTargetEnabled<Target.Linux>()
-        DefaultSourceSetNames.iosX64 -> getEnabledTarget<Target.Ios>()?.x64 ?: false
-        DefaultSourceSetNames.iosArm64 -> getEnabledTarget<Target.Ios>()?.arm64 ?: false
-        DefaultSourceSetNames.iosSimulatorArm64 -> getEnabledTarget<Target.Ios>()?.simulatorArm64 ?: false
-        in DefaultSourceSetNames.iosSet -> isTargetEnabled<Target.Ios>()
-        DefaultSourceSetNames.watchosX64 -> getEnabledTarget<Target.WatchOs>()?.x64 ?: false
-        DefaultSourceSetNames.watchosArm32 -> getEnabledTarget<Target.WatchOs>()?.arm32 ?: false
-        DefaultSourceSetNames.watchosArm64 -> getEnabledTarget<Target.WatchOs>()?.arm64 ?: false
-        DefaultSourceSetNames.watchosSimulatorArm64 -> getEnabledTarget<Target.WatchOs>()?.simulatorArm64 ?: false
-        in DefaultSourceSetNames.watchosSet -> isTargetEnabled<Target.WatchOs>()
-        DefaultSourceSetNames.tvosX64 -> getEnabledTarget<Target.TvOs>()?.x64 ?: false
-        DefaultSourceSetNames.tvosArm64 -> getEnabledTarget<Target.TvOs>()?.arm64 ?: false
-        DefaultSourceSetNames.tvosSimulatorArm64 -> getEnabledTarget<Target.TvOs>()?.simulatorArm64 ?: false
-        in DefaultSourceSetNames.tvosSet -> isTargetEnabled<Target.TvOs>()
-        DefaultSourceSetNames.macosX64 -> getEnabledTarget<Target.MacOs>()?.x64 ?: false
-        DefaultSourceSetNames.macosArm64 -> getEnabledTarget<Target.MacOs>()?.arm64 ?: false
-        in DefaultSourceSetNames.macosSet -> isTargetEnabled<Target.MacOs>()
-        else -> error("No Target class found for leaf source set $leafSourceSet")
-    }
+private class DefaultMultiplatformSourceSets(
+    private val targets: NamedDomainObjectCollection<KotlinTarget>,
+    private val sourceSets: NamedDomainObjectContainer<KotlinSourceSet>,
+) : MultiplatformSourceSets, NamedDomainObjectContainer<KotlinSourceSet> by sourceSets {
 
-private fun Project.setupAndroidTarget() {
-    kotlin {
-        android {
-            disableCompilationsIfNeeded()
+    override val common: SourceSetBundle by bundle()
+
+    override val allSet: Set<SourceSetBundle> =
+        targets.toSourceSetBundles()
+
+    override val javaSet: Set<SourceSetBundle> =
+        targets
+            .filter { it.platformType in setOf(KotlinPlatformType.androidJvm, KotlinPlatformType.jvm) }
+            .toSourceSetBundles()
+
+    override val nativeSet: Set<SourceSetBundle> = nativeSourceSets()
+    override val linuxSet: Set<SourceSetBundle> = nativeSourceSets(Family.LINUX)
+    override val darwinSet: Set<SourceSetBundle> = nativeSourceSets(Family.IOS, Family.OSX, Family.WATCHOS, Family.TVOS)
+    override val iosSet: Set<SourceSetBundle> = nativeSourceSets(Family.IOS)
+    override val watchosSet: Set<SourceSetBundle> = nativeSourceSets(Family.WATCHOS)
+    override val tvosSet: Set<SourceSetBundle> = nativeSourceSets(Family.TVOS)
+    override val macosSet: Set<SourceSetBundle> = nativeSourceSets(Family.OSX)
+
+    private fun nativeSourceSets(vararg families: Family = Family.values()): Set<SourceSetBundle> =
+        targets
+            .filterIsInstance<KotlinNativeTarget>()
+            .filter { it.konanTarget.family in families }
+            .toSourceSetBundles()
+
+    private fun Iterable<KotlinTarget>.toSourceSetBundles(): Set<SourceSetBundle> =
+        filter { it.platformType != KotlinPlatformType.common }
+            .map { it.getSourceSetBundle() }
+            .toSet()
+
+    private fun KotlinTarget.getSourceSetBundle(): SourceSetBundle =
+        if (compilations.isEmpty()) {
+            bundle(name)
+        } else {
+            SourceSetBundle(
+                main = compilations.getByName("main").defaultSourceSet,
+                test = compilations.getByName("test").defaultSourceSet,
+            )
         }
-    }
 }
 
-private fun Project.setupJvmTarget() {
-    kotlin {
-        jvm {
-            disableCompilationsIfNeeded()
+fun NamedDomainObjectContainer<out KotlinSourceSet>.bundle(name: String): SourceSetBundle =
+    SourceSetBundle(
+        main = maybeCreate("${name}Main"),
+        test = maybeCreate("${name}Test"),
+    )
+
+fun NamedDomainObjectContainer<out KotlinSourceSet>.bundle(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, SourceSetBundle>> =
+    PropertyDelegateProvider { _, property ->
+        val bundle = bundle(property.name)
+        ReadOnlyProperty { _, _ -> bundle }
+    }
+
+data class SourceSetBundle(
+    val main: KotlinSourceSet,
+    val test: KotlinSourceSet,
+)
+
+operator fun SourceSetBundle.plus(other: SourceSetBundle): Set<SourceSetBundle> =
+    this + setOf(other)
+
+operator fun SourceSetBundle.plus(other: Set<SourceSetBundle>): Set<SourceSetBundle> =
+    setOf(this) + other
+
+infix fun SourceSetBundle.dependsOn(other: SourceSetBundle) {
+    main.dependsOn(other.main)
+    test.dependsOn(other.test)
+}
+
+infix fun Iterable<SourceSetBundle>.dependsOn(other: Iterable<SourceSetBundle>) {
+    forEach { left ->
+        other.forEach { right ->
+            left.dependsOn(right)
         }
     }
 }
 
-private fun Project.setupLinuxTarget() {
-    kotlin {
-        linuxX64 {
-            disableCompilationsIfNeeded()
+infix fun SourceSetBundle.dependsOn(other: Iterable<SourceSetBundle>) {
+    listOf(this) dependsOn other
+}
+
+infix fun Iterable<SourceSetBundle>.dependsOn(other: SourceSetBundle) {
+    this dependsOn listOf(other)
+}
+
+fun KotlinMultiplatformExtension.iosCompat(
+    x64: String? = DEFAULT_TARGET_NAME,
+    arm64: String? = DEFAULT_TARGET_NAME,
+    simulatorArm64: String? = DEFAULT_TARGET_NAME,
+) {
+    enableTarget(name = x64, enableDefault = { iosX64() }, enableNamed = { iosX64(it) })
+    enableTarget(name = arm64, enableDefault = { iosArm64() }, enableNamed = { iosArm64(it) })
+    enableTarget(name = simulatorArm64, enableDefault = { iosSimulatorArm64() }, enableNamed = { iosSimulatorArm64(it) })
+}
+
+fun KotlinMultiplatformExtension.watchosCompat(
+    x64: String? = DEFAULT_TARGET_NAME,
+    arm32: String? = DEFAULT_TARGET_NAME,
+    arm64: String? = DEFAULT_TARGET_NAME,
+    simulatorArm64: String? = DEFAULT_TARGET_NAME,
+) {
+    enableTarget(name = x64, enableDefault = { watchosX64() }, enableNamed = { watchosX64(it) })
+    enableTarget(name = arm32, enableDefault = { watchosArm32() }, enableNamed = { watchosArm32(it) })
+    enableTarget(name = arm64, enableDefault = { watchosArm64() }, enableNamed = { watchosArm64(it) })
+    enableTarget(name = simulatorArm64, enableDefault = { watchosSimulatorArm64() }, enableNamed = { watchosSimulatorArm64(it) })
+}
+
+fun KotlinMultiplatformExtension.tvosCompat(
+    x64: String? = DEFAULT_TARGET_NAME,
+    arm64: String? = DEFAULT_TARGET_NAME,
+    simulatorArm64: String? = DEFAULT_TARGET_NAME,
+) {
+    enableTarget(name = x64, enableDefault = { tvosX64() }, enableNamed = { tvosX64(it) })
+    enableTarget(name = arm64, enableDefault = { tvosArm64() }, enableNamed = { tvosArm64(it) })
+    enableTarget(name = simulatorArm64, enableDefault = { tvosSimulatorArm64() }, enableNamed = { tvosSimulatorArm64(it) })
+}
+
+fun KotlinMultiplatformExtension.macosCompat(
+    x64: String? = DEFAULT_TARGET_NAME,
+    arm64: String? = DEFAULT_TARGET_NAME,
+) {
+    enableTarget(name = x64, enableDefault = { macosX64() }, enableNamed = { macosX64(it) })
+    enableTarget(name = arm64, enableDefault = { macosArm64() }, enableNamed = { macosArm64(it) })
+}
+
+private fun KotlinMultiplatformExtension.enableTarget(
+    name: String?,
+    enableDefault: KotlinMultiplatformExtension.() -> Unit,
+    enableNamed: KotlinMultiplatformExtension.(String) -> Unit,
+) {
+    if (name != null) {
+        if (name == DEFAULT_TARGET_NAME) {
+            enableDefault()
+        } else {
+            enableNamed(name)
         }
     }
 }
 
-private fun Project.setupIosTarget(target: Target.Ios) {
-    kotlin {
-        if (target.arm64) {
-            iosArm64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.simulatorArm64) {
-            iosSimulatorArm64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.x64) {
-            iosX64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-    }
-}
-
-private fun Project.setupWatchOsTarget(target: Target.WatchOs) {
-    kotlin {
-        if (target.arm32) {
-            watchosArm32 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.arm64) {
-            watchosArm64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.simulatorArm64) {
-            watchosSimulatorArm64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.x64) {
-            watchosX64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-    }
-}
-
-private fun Project.setupTvOsTarget(target: Target.TvOs) {
-    kotlin {
-        if (target.arm64) {
-            tvosArm64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.simulatorArm64) {
-            tvosSimulatorArm64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.x64) {
-            tvosX64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-    }
-}
-
-private fun Project.setupMacOsTarget(target: Target.MacOs) {
-    kotlin {
-        if (target.arm64) {
-            macosArm64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-
-        if (target.x64) {
-            macosX64 {
-                disableCompilationsIfNeeded()
-            }
-        }
-    }
-}
-
-private fun Project.setupJsTarget(target: Target.Js) {
-    kotlin {
-        js(
-            when (target.mode) {
-                Target.Js.Mode.BOTH -> BOTH
-                Target.Js.Mode.IR -> IR
-                Target.Js.Mode.LEGACY -> LEGACY
-            }
-        ) {
-            target.environments.forEach {
-                when (it) {
-                    Target.Js.Environment.BROWSER -> browser()
-                    Target.Js.Environment.NODE_JS -> nodejs()
-                }.let {}
-            }
-
-            when (target.binary) {
-                Target.Js.Binary.NONE -> Unit
-                Target.Js.Binary.EXECUTABLE -> binaries.executable()
-                Target.Js.Binary.LIBRARY -> binaries.library()
-            }
-
-            disableCompilationsIfNeeded()
-        }
-    }
-}
+private const val DEFAULT_TARGET_NAME = "DEFAULT_TARGET_NAME"
