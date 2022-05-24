@@ -1,7 +1,7 @@
 package com.arkivanov.gradle
 
 import com.android.build.gradle.LibraryExtension
-import kotlinx.validation.ApiCompareCompareTask
+import kotlinx.validation.KotlinApiCompareTask
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
@@ -18,7 +18,7 @@ private fun Project.setupBinaryCompatibilityValidatorMultiplatform() {
     plugins.apply("org.jetbrains.kotlinx.binary-compatibility-validator")
 
     afterEvaluate {
-        tasks.withType<ApiCompareCompareTask> {
+        tasks.withType<KotlinApiCompareTask> {
             val target = getTargetForTaskName(taskName = name)
             if (target != null) {
                 enabled = isMultiplatformApiTargetAllowed(target)
