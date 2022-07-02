@@ -56,8 +56,8 @@ internal fun Project.isMultiplatformTargetEnabled(target: Target): Boolean =
             KotlinPlatformType.jvm -> target == Target.JVM
             KotlinPlatformType.common,
             KotlinPlatformType.js,
-            KotlinPlatformType.native -> false
-//            KotlinPlatformType.wasm -> false
+            KotlinPlatformType.native,
+            KotlinPlatformType.wasm -> false
         }
     }
 

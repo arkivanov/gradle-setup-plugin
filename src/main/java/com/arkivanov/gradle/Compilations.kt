@@ -44,8 +44,8 @@ private fun KotlinTarget.isCompilationAllowed(): Boolean =
         KotlinPlatformType.common -> true
         KotlinPlatformType.jvm,
         KotlinPlatformType.js,
-        KotlinPlatformType.androidJvm -> Compilations.isGenericEnabled
-//        KotlinPlatformType.wasm -> Compilations.isGenericEnabled
+        KotlinPlatformType.androidJvm,
+        KotlinPlatformType.wasm -> Compilations.isGenericEnabled
         KotlinPlatformType.native -> (this as KotlinNativeTarget).isCompilationAllowed()
     }
 
