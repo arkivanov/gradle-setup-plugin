@@ -17,7 +17,6 @@ fun Project.setupDetekt() {
             parallel = true
             buildUponDefaultConfig = true
             config = files("$rootDir/detekt.yml")
-            source = files(file("src").listFiles()?.find { it.isDirectory } ?: emptyArray<Any>())
         }
 
         tasks.register("detektAll") {
