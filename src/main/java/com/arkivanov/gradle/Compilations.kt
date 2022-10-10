@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.targets
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.targets
 import org.jetbrains.kotlin.konan.target.Family
 
 internal object Compilations {
