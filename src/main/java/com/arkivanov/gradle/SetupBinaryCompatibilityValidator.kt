@@ -8,8 +8,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 fun Project.setupBinaryCompatibilityValidator() {
     when {
-        hasExtension<KotlinMultiplatformExtension>() -> setupBinaryCompatibilityValidatorMultiplatform()
-        hasExtension<LibraryExtension>() -> setupBinaryCompatibilityValidatorAndroidLibrary()
+        hasExtension { KotlinMultiplatformExtension::class } -> setupBinaryCompatibilityValidatorMultiplatform()
+        hasExtension { LibraryExtension::class } -> setupBinaryCompatibilityValidatorAndroidLibrary()
         else -> error("Unsupported project type for API checks")
     }
 }

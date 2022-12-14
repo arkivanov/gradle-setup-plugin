@@ -3,6 +3,7 @@ package com.arkivanov.gradle
 import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublicationContainer
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -14,20 +15,24 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.getValue
 import org.gradle.kotlin.dsl.withType
+import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
 import org.gradle.plugins.signing.SigningExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 fun Project.setupPublication() {
     val config = requireDefaults<PublicationConfig>()
     when {
-        hasExtension<KotlinMultiplatformExtension>() -> setupPublicationMultiplatform(config)
-        hasExtension<LibraryExtension>() -> setupPublicationAndroidLibrary(config)
+        hasExtension { KotlinMultiplatformExtension::class } -> setupPublicationMultiplatform(config)
+        hasExtension { LibraryExtension::class } -> setupPublicationAndroidLibrary(config)
+        hasExtension { GradlePluginDevelopmentExtension::class } -> setupPublicationGradlePlugin(config)
+        hasExtension { JavaPluginExtension::class } -> setupPublicationJava(config)
         else -> error("Unsupported project type for publication")
     }
 }
 
 private fun Project.setupPublicationMultiplatform(config: PublicationConfig) {
-    plugins.apply("maven-publish")
+    applyMavenPublishPlugin()
 
     group = config.group
     version = config.version
@@ -40,7 +45,7 @@ private fun Project.setupPublicationMultiplatform(config: PublicationConfig) {
 
     setupPublicationRepository(config)
 
-    if (Compilations.isGenericEnabled) {
+    if (Compilations.isGenericEnabled && multiplatformExtension.targets.any { it.platformType == KotlinPlatformType.androidJvm }) {
         multiplatformExtension.apply {
             android {
                 publishLibraryVariants("release", "debug")
@@ -77,11 +82,59 @@ private fun Project.setupPublicationAndroidLibrary(config: PublicationConfig) {
     }
 
     afterEvaluate {
-        extensions.configure<PublishingExtension>() {
+        extensions.configure<PublishingExtension> {
             publications {
                 createMavenPublication(name = "debug", artifactIdSuffix = "-debug")
                 createMavenPublication(name = "release", artifactIdSuffix = "")
             }
+        }
+    }
+
+    setupPublicationRepository(config)
+}
+
+private fun Project.setupPublicationGradlePlugin(config: PublicationConfig) {
+    applyMavenPublishPlugin()
+
+    group = config.group
+    version = config.version
+
+    val gradlePluginExtension = extensions.getByType<GradlePluginDevelopmentExtension>()
+
+    val sourceJarTask by tasks.creating(Jar::class) {
+        from(gradlePluginExtension.pluginSourceSet.java.srcDirs)
+        archiveClassifier.set("sources")
+    }
+
+    afterEvaluate {
+        extensions.configure<PublishingExtension> {
+            publications.withType<MavenPublication>().configureEach {
+                artifact(sourceJarTask)
+                setupPublicationPom(project, config)
+            }
+        }
+    }
+
+    setupPublicationRepository(config)
+}
+
+private fun Project.setupPublicationJava(config: PublicationConfig) {
+    applyMavenPublishPlugin()
+
+    group = config.group
+    version = config.version
+
+    val javaPluginExtension = extensions.getByType<JavaPluginExtension>()
+
+    val sourceJarTask by tasks.creating(Jar::class) {
+        from(javaPluginExtension.sourceSets.getByName("main").java.srcDirs)
+        archiveClassifier.set("sources")
+    }
+
+    extensions.configure<PublishingExtension> {
+        publications.withType<MavenPublication>().configureEach {
+            artifact(sourceJarTask)
+            setupPublicationPom(project, config)
         }
     }
 
@@ -148,6 +201,10 @@ internal fun Project.setupPublicationRepository(config: PublicationConfig) {
             }
         }
     }
+}
+
+private fun Project.applyMavenPublishPlugin() {
+    plugins.apply("maven-publish")
 }
 
 private const val JAVADOC_JAR_TASK_NAME = "javadocJar"
