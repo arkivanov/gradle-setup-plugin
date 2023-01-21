@@ -19,11 +19,11 @@ repositories {
 }
 
 dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20")
-    compileOnly("com.android.tools.build:gradle:7.2.0")
+    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0")
+    compileOnly("com.android.tools.build:gradle:7.3.1")
     compileOnly("org.jetbrains.intellij.plugins:gradle-intellij-plugin:1.3.1")
-    compileOnly("org.jetbrains.kotlinx:binary-compatibility-validator:0.11.0")
-    compileOnly("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.21.0")
+    compileOnly("org.jetbrains.kotlinx:binary-compatibility-validator:0.12.1")
+    compileOnly("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.22.0")
     testImplementation(kotlin("test"))
 }
 
