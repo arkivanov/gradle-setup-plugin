@@ -123,7 +123,7 @@ private class DefaultMultiplatformSourceSets(
 fun NamedDomainObjectContainer<out KotlinSourceSet>.bundle(name: String): SourceSetBundle =
     SourceSetBundle(
         main = maybeCreate("${name}Main"),
-        test = maybeCreate("${name}Test"),
+        test = maybeCreate(if (name == "android") "${name}UnitTest" else "${name}Test"),
     )
 
 fun NamedDomainObjectContainer<out KotlinSourceSet>.bundle(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, SourceSetBundle>> =
