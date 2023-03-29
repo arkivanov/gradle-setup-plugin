@@ -6,6 +6,7 @@ import org.gradle.kotlin.dsl.extra
 fun Project.setupDefaults(
     multiplatformConfigurator: MultiplatformConfigurator? = null,
     androidConfig: AndroidConfig? = null,
+    binaryCompatibilityValidatorConfig: BinaryCompatibilityValidatorConfig? = null,
     publicationConfig: PublicationConfig? = null,
 ) {
     extra.set(
@@ -13,6 +14,7 @@ fun Project.setupDefaults(
         listOfNotNull(
             multiplatformConfigurator,
             androidConfig,
+            binaryCompatibilityValidatorConfig,
             publicationConfig,
         )
     )

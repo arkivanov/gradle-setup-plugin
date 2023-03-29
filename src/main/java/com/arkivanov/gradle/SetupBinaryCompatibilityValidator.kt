@@ -1,8 +1,10 @@
 package com.arkivanov.gradle
 
 import com.android.build.gradle.LibraryExtension
+import kotlinx.validation.ApiValidationExtension
 import kotlinx.validation.KotlinApiCompareTask
 import org.gradle.api.Project
+import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
@@ -16,6 +18,8 @@ fun Project.setupBinaryCompatibilityValidator() {
 
 private fun Project.setupBinaryCompatibilityValidatorMultiplatform() {
     plugins.apply("org.jetbrains.kotlinx.binary-compatibility-validator")
+
+    applyBinaryCompatibilityValidatorConfig()
 
     afterEvaluate {
         tasks.withType<KotlinApiCompareTask> {
@@ -31,6 +35,15 @@ private fun Project.setupBinaryCompatibilityValidatorMultiplatform() {
 private fun Project.setupBinaryCompatibilityValidatorAndroidLibrary() {
     if (Compilations.isGenericEnabled) {
         plugins.apply("org.jetbrains.kotlinx.binary-compatibility-validator")
+        applyBinaryCompatibilityValidatorConfig()
+    }
+}
+
+private fun Project.applyBinaryCompatibilityValidatorConfig() {
+    val config = getDefaults<BinaryCompatibilityValidatorConfig>() ?: return
+
+    extensions.configure<ApiValidationExtension> {
+        nonPublicMarkers += config.nonPublicMarkers
     }
 }
 
