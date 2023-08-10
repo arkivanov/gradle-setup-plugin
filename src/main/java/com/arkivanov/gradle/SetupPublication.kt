@@ -47,7 +47,7 @@ private fun Project.setupPublicationMultiplatform(config: PublicationConfig) {
 
     if (Compilations.isGenericEnabled && multiplatformExtension.targets.any { it.platformType == KotlinPlatformType.androidJvm }) {
         multiplatformExtension.apply {
-            android {
+            androidTarget {
                 publishLibraryVariants("release", "debug")
             }
         }

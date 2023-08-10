@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     `kotlin-dsl`
     `java-gradle-plugin`
@@ -12,6 +14,12 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+
 repositories {
     gradlePluginPortal()
     mavenCentral()
@@ -19,10 +27,10 @@ repositories {
 }
 
 dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0")
-    compileOnly("com.android.tools.build:gradle:7.3.1")
+    compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0")
+    compileOnly("com.android.tools.build:gradle:8.0.2")
     compileOnly("org.jetbrains.intellij.plugins:gradle-intellij-plugin:1.3.1")
-    compileOnly("org.jetbrains.kotlinx:binary-compatibility-validator:0.12.1")
+    compileOnly("org.jetbrains.kotlinx:binary-compatibility-validator:0.13.2")
     compileOnly("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.22.0")
     testImplementation(kotlin("test"))
 }

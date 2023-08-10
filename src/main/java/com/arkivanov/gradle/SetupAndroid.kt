@@ -52,12 +52,6 @@ internal fun Project.setupAndroidCommon(config: AndroidConfig) {
             sourceCompatibility(JavaVersion.VERSION_1_8)
             targetCompatibility(JavaVersion.VERSION_1_8)
         }
-
-        withGroovyBuilder {
-            "kotlinOptions" {
-                setProperty("jvmTarget", "1.8")
-            }
-        }
     }
 
     tasks.withType<AndroidLintTask> {
@@ -66,5 +60,11 @@ internal fun Project.setupAndroidCommon(config: AndroidConfig) {
 
     tasks.withType<AndroidLintTextOutputTask> {
         enabled = Compilations.isGenericEnabled
+    }
+
+    tasks.withType<KotlinCompile> {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
     }
 }

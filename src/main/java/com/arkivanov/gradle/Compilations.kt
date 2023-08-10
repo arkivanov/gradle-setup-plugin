@@ -35,7 +35,7 @@ private fun KotlinTarget.disableCompilationsOfNeeded() {
 
 private fun KotlinTarget.disableCompilations() {
     compilations.configureEach {
-        compileKotlinTask.enabled = false
+        compileTaskProvider.get().enabled = false
     }
 }
 
