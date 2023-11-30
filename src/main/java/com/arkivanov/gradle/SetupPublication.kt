@@ -4,7 +4,6 @@ import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.plugins.JavaPluginExtension
-import org.gradle.api.publish.PublicationContainer
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
@@ -15,6 +14,7 @@ import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
 import org.gradle.plugins.signing.Sign
@@ -41,7 +41,8 @@ private fun Project.setupPublicationMultiplatform(config: PublicationConfig) {
 
     extensions.configure<PublishingExtension> {
         publications.withType<MavenPublication>().configureEach {
-            setupPublicationPom(project, config)
+            artifact(project.ensureJavadocJarTask())
+            setupPublicationPom(config)
         }
     }
 
@@ -50,7 +51,7 @@ private fun Project.setupPublicationMultiplatform(config: PublicationConfig) {
     if (Compilations.isGenericEnabled && multiplatformExtension.targets.any { it.platformType == KotlinPlatformType.androidJvm }) {
         multiplatformExtension.apply {
             androidTarget {
-                publishLibraryVariants("release", "debug")
+                publishLibraryVariants("release")
             }
         }
     }
@@ -63,31 +64,27 @@ private fun Project.setupPublicationAndroidLibrary(config: PublicationConfig) {
 
     plugins.apply("maven-publish")
 
-    val androidExtension = extensions.getByType<LibraryExtension>()
-
-    val sourceJarTask by tasks.creating(Jar::class) {
-        from(androidExtension.sourceSets.getByName("main").java.srcDirs)
-        archiveClassifier.set("source")
-    }
-
-    fun PublicationContainer.createMavenPublication(name: String, artifactIdSuffix: String) {
-        create<MavenPublication>(name) {
-            from(components[name])
-            artifact(sourceJarTask)
-
-            groupId = config.group
-            version = config.version
-            artifactId = "${project.name}$artifactIdSuffix"
-
-            setupPublicationPom(project, config)
+    extensions.configure<LibraryExtension> {
+        publishing {
+            singleVariant("release") {
+                withSourcesJar()
+                withJavadocJar()
+            }
         }
     }
 
-    afterEvaluate {
-        extensions.configure<PublishingExtension> {
-            publications {
-                createMavenPublication(name = "debug", artifactIdSuffix = "-debug")
-                createMavenPublication(name = "release", artifactIdSuffix = "")
+    extensions.configure<PublishingExtension> {
+        publications {
+            register<MavenPublication>("release") {
+                groupId = config.group
+                version = config.version
+                artifactId = project.name
+
+                setupPublicationPom(config)
+
+                afterEvaluate {
+                    from(components["release"])
+                }
             }
         }
     }
@@ -112,7 +109,8 @@ private fun Project.setupPublicationGradlePlugin(config: PublicationConfig) {
         extensions.configure<PublishingExtension> {
             publications.withType<MavenPublication>().configureEach {
                 artifact(sourceJarTask)
-                setupPublicationPom(project, config)
+                artifact(project.ensureJavadocJarTask())
+                setupPublicationPom(config)
             }
         }
     }
@@ -136,19 +134,15 @@ private fun Project.setupPublicationJava(config: PublicationConfig) {
     extensions.configure<PublishingExtension> {
         publications.withType<MavenPublication>().configureEach {
             artifact(sourceJarTask)
-            setupPublicationPom(project, config)
+            artifact(project.ensureJavadocJarTask())
+            setupPublicationPom(config)
         }
     }
 
     setupPublicationRepository(config)
 }
 
-internal fun MavenPublication.setupPublicationPom(
-    project: Project,
-    config: PublicationConfig,
-) {
-    artifact(project.ensureJavadocJarTask())
-
+private fun MavenPublication.setupPublicationPom(config: PublicationConfig) {
     pom {
         name.set(config.projectName)
         description.set(config.projectDescription)
@@ -177,7 +171,7 @@ internal fun MavenPublication.setupPublicationPom(
     }
 }
 
-internal fun Project.setupPublicationRepository(config: PublicationConfig) {
+private fun Project.setupPublicationRepository(config: PublicationConfig) {
     val isSigningEnabled = config.signingKey != null
 
     if (isSigningEnabled) {
