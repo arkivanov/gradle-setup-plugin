@@ -1,6 +1,7 @@
 package com.arkivanov.gradle
 
 import kotlinx.validation.ApiValidationExtension
+import kotlinx.validation.ExperimentalBCVApi
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
@@ -16,5 +17,7 @@ private fun Project.applyBinaryCompatibilityValidatorConfig() {
 
     extensions.configure<ApiValidationExtension> {
         nonPublicMarkers += config.nonPublicMarkers
+        @OptIn(ExperimentalBCVApi::class)
+        klib.enabled = config.klib
     }
 }
