@@ -1,11 +1,12 @@
 package com.arkivanov.gradle
 
 import org.gradle.internal.os.OperatingSystem
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.KotlinSingleTargetExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.targets
 import org.jetbrains.kotlin.konan.target.Family
 
 internal object Compilations {
@@ -23,6 +24,13 @@ internal fun KotlinProjectExtension.disableCompilationsOfNeeded() {
         it.disableCompilationsOfNeeded()
     }
 }
+
+private val KotlinProjectExtension.targets: Iterable<KotlinTarget>
+    get() = when (this) {
+        is KotlinSingleTargetExtension<*> -> listOf(this.target)
+        is KotlinMultiplatformExtension -> targets
+        else -> error("Unexpected 'kotlin' extension $this")
+    }
 
 private fun KotlinTarget.disableCompilationsOfNeeded() {
     val isAllowed = isCompilationAllowed()
@@ -61,9 +69,7 @@ internal fun Family.isCompilationAllowed(): Boolean =
         Family.WATCHOS -> Compilations.isDarwinEnabled
 
         Family.LINUX,
-        Family.ANDROID,
-        Family.WASM -> Compilations.isGenericEnabled
+        Family.ANDROID -> Compilations.isGenericEnabled
 
         Family.MINGW -> Compilations.isWindowsEnabled
-        Family.ZEPHYR -> error("Unsupported family: $this")
     }
