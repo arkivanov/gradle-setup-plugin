@@ -34,8 +34,12 @@ fun Project.setupAndroidApp(
 private fun Project.setupAndroid(config: AndroidConfig) {
     setupAndroidCommon(config)
 
-    project.tasks.withType<KotlinCompile> {
+    tasks.withType<KotlinCompile> {
         enabled = Compilations.isGenericEnabled
+
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_1_8)
+        }
     }
 }
 
@@ -60,11 +64,5 @@ internal fun Project.setupAndroidCommon(config: AndroidConfig) {
 
     tasks.withType<AndroidLintTextOutputTask> {
         enabled = Compilations.isGenericEnabled
-    }
-
-    tasks.withType<KotlinCompile> {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_1_8)
-        }
     }
 }

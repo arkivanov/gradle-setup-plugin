@@ -25,10 +25,10 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 fun Project.setupPublication() {
     val config = requireDefaults<PublicationConfig>()
     when {
-        hasExtension { KotlinMultiplatformExtension::class } -> setupPublicationMultiplatform(config)
-        hasExtension { LibraryExtension::class } -> setupPublicationAndroidLibrary(config)
-        hasExtension { GradlePluginDevelopmentExtension::class } -> setupPublicationGradlePlugin(config)
-        hasExtension { JavaPluginExtension::class } -> setupPublicationJava(config)
+        hasExtension<KotlinMultiplatformExtension>() -> setupPublicationMultiplatform(config)
+        hasExtension<LibraryExtension>() -> setupPublicationAndroidLibrary(config)
+        hasExtension<GradlePluginDevelopmentExtension>() -> setupPublicationGradlePlugin(config)
+        hasExtension<JavaPluginExtension>() -> setupPublicationJava(config)
         else -> error("Unsupported project type for publication")
     }
 }
