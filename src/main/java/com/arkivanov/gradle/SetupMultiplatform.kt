@@ -1,8 +1,10 @@
 package com.arkivanov.gradle
 
+import org.gradle.api.JavaVersion
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
+import org.gradle.api.plugins.JavaPluginExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -58,6 +60,11 @@ fun Project.setupMultiplatform(
 
     if (isMultiplatformTargetEnabled(Target.ANDROID)) {
         setupAndroidCommon(requireDefaults())
+    }
+
+    configureExtension<JavaPluginExtension> {
+        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_11
     }
 }
 
