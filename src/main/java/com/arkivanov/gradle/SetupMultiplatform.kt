@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.jetbrains.kotlin.konan.target.Family
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
@@ -31,10 +32,16 @@ fun Project.setupMultiplatform(
         }
 
         this.targets.configureEach {
-            if (this is KotlinAndroidTarget) {
-                compilerOptions {
-                    jvmTarget.set(JvmTarget.JVM_1_8)
-                }
+            when (this) {
+                is KotlinAndroidTarget ->
+                    compilerOptions {
+                        jvmTarget.set(JvmTarget.JVM_1_8)
+                    }
+
+                is KotlinJvmTarget ->
+                    compilerOptions {
+                        jvmTarget.set(JvmTarget.JVM_11)
+                    }
             }
 
             compilations.configureEach {
