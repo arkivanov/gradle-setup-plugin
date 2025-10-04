@@ -2,6 +2,7 @@ package com.arkivanov.gradle
 
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.extra
+import org.gradle.kotlin.dsl.register
 
 fun Project.setupDefaults(
     multiplatformConfigurator: MultiplatformConfigurator? = null,
@@ -18,6 +19,16 @@ fun Project.setupDefaults(
             publicationConfig,
         )
     )
+
+    if (publicationConfig != null) {
+        tasks.register<DropOpenSonatypeRepositoriesTask>("dropOpenSonatypeRepositories") {
+            setup(publicationConfig)
+        }
+
+        tasks.register<CloseSonatypeRepositoriesTask>("closeSonatypeRepositories") {
+            setup(publicationConfig)
+        }
+    }
 }
 
 internal inline fun <reified T : Any> Project.requireDefaults(): T =

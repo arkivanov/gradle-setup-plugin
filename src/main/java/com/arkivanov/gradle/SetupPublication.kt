@@ -1,12 +1,18 @@
 package com.arkivanov.gradle
 
 import com.android.build.gradle.LibraryExtension
+import groovy.json.JsonSlurper
+import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.TaskAction
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
@@ -21,6 +27,9 @@ import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.Base64
 
 fun Project.setupPublication() {
     val config = requireDefaults<PublicationConfig>()
@@ -218,3 +227,86 @@ private fun Project.createJavadocJarTask(): Task =
     tasks.create<Jar>(JAVADOC_JAR_TASK_NAME).apply {
         archiveClassifier.set("javadoc")
     }
+
+internal open class DropOpenSonatypeRepositoriesTask : SonatypeTask() {
+    @TaskAction
+    fun run() {
+        getOpenSonatypeRepositoryKeys().forEach { key ->
+            requestDelete("/manual/drop/repository/$key")
+        }
+    }
+}
+
+internal open class CloseSonatypeRepositoriesTask : SonatypeTask() {
+    @TaskAction
+    fun run() {
+        getOpenSonatypeRepositoryKeys().forEach { key ->
+            requestPost("/manual/upload/repository/$key")
+        }
+    }
+}
+
+internal abstract class SonatypeTask : DefaultTask() {
+    @get:Optional
+    @get:Input
+    var namespace: String? = null
+
+    @get:Optional
+    @get:Input
+    var userName: String? = null
+
+    @get:Optional
+    @get:Input
+    var password: String? = null
+
+    private val sonatypeBaseUrl = "https://ossrh-staging-api.central.sonatype.com"
+
+    @Internal
+    protected fun getOpenSonatypeRepositoryKeys(): List<String> {
+        checkNotNull(namespace) { "Namespace was not specified" }
+
+        val jsonBytes = requestGet("/manual/search/repositories?ip=any&profile_id=$namespace")
+        val json = JsonSlurper().parse(jsonBytes) as Map<*, *>
+        val repositories = json["repositories"] as List<*>
+
+        return repositories.filterIsInstance<Map<*, *>>()
+            .filter { it["state"] == "open" }
+            .map { it["key"] as String }
+    }
+
+    private fun requestGet(url: String): ByteArray =
+        startRequest(url = url, method = "GET").inputStream.readAllBytes()
+
+    protected fun requestDelete(url: String) {
+        startRequest(url = url, method = "DELETE")
+    }
+
+    protected fun requestPost(url: String) {
+        startRequest(url = url, method = "POST")
+    }
+
+    private fun startRequest(url: String, method: String): HttpURLConnection {
+        val connection = URL("$sonatypeBaseUrl$url").openConnection() as HttpURLConnection
+        connection.setRequestProperty("Authorization", authHeader())
+        connection.requestMethod = method
+        check(connection.responseCode in 200..299) { "Invalid response code: ${connection.responseCode}" }
+
+        return connection
+    }
+
+    private fun authHeader(): String {
+        checkNotNull(userName) { "User name was not provided" }
+        checkNotNull(password) { "Password was not provided" }
+
+        return "Bearer ${"$userName:$password".encodeToBase64()}"
+    }
+}
+
+internal fun SonatypeTask.setup(config: PublicationConfig) {
+    namespace = config.group
+    userName = config.repositoryUserName
+    password = config.repositoryPassword
+}
+
+private fun String.encodeToBase64(): String =
+    Base64.getEncoder().encodeToString(toByteArray())
