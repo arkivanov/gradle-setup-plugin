@@ -1,7 +1,8 @@
 package com.arkivanov.gradle
 
-import com.android.build.gradle.BaseExtension
-import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.dsl.LibraryExtension
 import com.android.build.gradle.internal.lint.AndroidLintTask
 import com.android.build.gradle.internal.lint.AndroidLintTextOutputTask
 import org.gradle.api.JavaVersion
@@ -12,7 +13,17 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun Project.setupAndroidLibrary() {
-    setupAndroid(requireDefaults())
+    val defaults = requireDefaults<AndroidConfig>()
+
+    extensions.configure<LibraryExtension> {
+        defaultConfig.apply {
+            lint {
+                targetSdk = defaults.targetSdkVersion
+            }
+        }
+    }
+
+    setupAndroid(defaults)
 }
 
 fun Project.setupAndroidApp(
@@ -20,15 +31,18 @@ fun Project.setupAndroidApp(
     versionCode: Int,
     versionName: String,
 ) {
-    setupAndroid(requireDefaults())
+    val defaults = requireDefaults<AndroidConfig>()
 
-    extensions.configure<BaseAppModuleExtension> {
-        defaultConfig {
+    extensions.configure<ApplicationExtension> {
+        defaultConfig.apply {
+            targetSdk = defaults.targetSdkVersion
             this.applicationId = applicationId
             this.versionCode = versionCode
             this.versionName = versionName
         }
     }
+
+    setupAndroid(defaults)
 }
 
 private fun Project.setupAndroid(config: AndroidConfig) {
@@ -38,26 +52,31 @@ private fun Project.setupAndroid(config: AndroidConfig) {
         enabled = Compilations.isGenericEnabled
 
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_1_8)
+            jvmTarget.set(JvmTarget.JVM_11)
         }
     }
 }
 
-internal fun Project.setupAndroidCommon(config: AndroidConfig) {
-    extensions.configure<BaseExtension> {
-        compileSdkVersion(config.compileSdkVersion)
-
-        defaultConfig {
-            minSdk = config.minSdkVersion
-            targetSdk = config.targetSdkVersion
+private fun Project.setupAndroidCommon(config: AndroidConfig) {
+    extensions.configure<CommonExtension> {
+        compileSdk {
+            version = release(config.compileSdkVersion)
         }
 
-        compileOptions {
-            sourceCompatibility(JavaVersion.VERSION_1_8)
-            targetCompatibility(JavaVersion.VERSION_1_8)
+        defaultConfig.apply {
+            minSdk = config.minSdkVersion
+        }
+
+        compileOptions.apply {
+            sourceCompatibility(JavaVersion.VERSION_11)
+            targetCompatibility(JavaVersion.VERSION_11)
         }
     }
 
+    configureAndroidLintTasks()
+}
+
+internal fun Project.configureAndroidLintTasks() {
     tasks.withType<AndroidLintTask> {
         enabled = Compilations.isGenericEnabled
     }

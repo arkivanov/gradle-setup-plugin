@@ -1,10 +1,9 @@
 package com.arkivanov.gradle
 
-import com.android.build.gradle.LibraryExtension
+import com.android.build.api.dsl.LibraryExtension
 import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
@@ -13,22 +12,23 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.create
-import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.named
+import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.kotlin.dsl.register
+import org.gradle.kotlin.dsl.registering
 import org.gradle.kotlin.dsl.withType
 import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import java.net.HttpURLConnection
-import java.net.URL
+import java.net.URI
 import java.util.Base64
 
 fun Project.setupPublication() {
@@ -56,14 +56,6 @@ private fun Project.setupPublicationMultiplatform(config: PublicationConfig) {
     }
 
     setupPublicationRepository(config)
-
-    if (Compilations.isGenericEnabled && multiplatformExtension.targets.any { it.platformType == KotlinPlatformType.androidJvm }) {
-        multiplatformExtension.apply {
-            androidTarget {
-                publishLibraryVariants("release")
-            }
-        }
-    }
 }
 
 private fun Project.setupPublicationAndroidLibrary(config: PublicationConfig) {
@@ -109,7 +101,7 @@ private fun Project.setupPublicationGradlePlugin(config: PublicationConfig) {
 
     val gradlePluginExtension = extensions.getByType<GradlePluginDevelopmentExtension>()
 
-    val sourceJarTask by tasks.creating(Jar::class) {
+    val sourceJarTask by tasks.registering(Jar::class) {
         from(gradlePluginExtension.pluginSourceSet.java.srcDirs)
         archiveClassifier.set("sources")
     }
@@ -135,7 +127,7 @@ private fun Project.setupPublicationJava(config: PublicationConfig) {
 
     val javaPluginExtension = extensions.getByType<JavaPluginExtension>()
 
-    val sourceJarTask by tasks.creating(Jar::class) {
+    val sourceJarTask by tasks.registering(Jar::class) {
         from(javaPluginExtension.sourceSets.getByName("main").java.srcDirs)
         archiveClassifier.set("sources")
     }
@@ -220,12 +212,13 @@ private fun Project.applyMavenPublishPlugin() {
 
 private const val JAVADOC_JAR_TASK_NAME = "javadocJar"
 
-private fun Project.ensureJavadocJarTask(): Task =
-    tasks.findByName(JAVADOC_JAR_TASK_NAME) ?: createJavadocJarTask()
-
-private fun Project.createJavadocJarTask(): Task =
-    tasks.create<Jar>(JAVADOC_JAR_TASK_NAME).apply {
-        archiveClassifier.set("javadoc")
+private fun Project.ensureJavadocJarTask(): TaskProvider<Jar> =
+    if (JAVADOC_JAR_TASK_NAME in tasks.names) {
+        tasks.named<Jar>(JAVADOC_JAR_TASK_NAME)
+    } else {
+        tasks.register<Jar>(JAVADOC_JAR_TASK_NAME) {
+            archiveClassifier.set("javadoc")
+        }
     }
 
 internal open class DropOpenSonatypeRepositoriesTask : SonatypeTask() {
@@ -286,7 +279,7 @@ internal abstract class SonatypeTask : DefaultTask() {
     }
 
     private fun startRequest(url: String, method: String): HttpURLConnection {
-        val connection = URL("$sonatypeBaseUrl$url").openConnection() as HttpURLConnection
+        val connection = URI("$sonatypeBaseUrl$url").toURL().openConnection() as HttpURLConnection
         connection.setRequestProperty("Authorization", authHeader())
         connection.requestMethod = method
         check(connection.responseCode in 200..299) { "Invalid response code: ${connection.responseCode}" }

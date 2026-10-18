@@ -1,5 +1,7 @@
 package com.arkivanov.gradle
 
+import com.android.build.api.dsl.KotlinMultiplatformAndroidHostTestCompilation
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import org.gradle.api.JavaVersion
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.NamedDomainObjectContainer
@@ -10,7 +12,6 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 import org.jetbrains.kotlin.konan.target.Family
@@ -20,6 +21,8 @@ import kotlin.properties.ReadOnlyProperty
 fun Project.setupMultiplatform(
     targets: MultiplatformConfigurator = requireDefaults(),
 ) {
+    configureAndroidLintTasks()
+
     multiplatformExtension.apply {
         with(targets) { invoke() }
 
@@ -35,15 +38,13 @@ fun Project.setupMultiplatform(
 
         this.targets.configureEach {
             when (this) {
-                is KotlinAndroidTarget ->
-                    compilerOptions {
-                        jvmTarget.set(JvmTarget.JVM_1_8)
-                    }
-
                 is KotlinJvmTarget ->
                     compilerOptions {
                         jvmTarget.set(JvmTarget.JVM_11)
                     }
+
+                is KotlinMultiplatformAndroidLibraryTarget ->
+                    configureAndroid(requireDefaults())
             }
 
             compilations.configureEach {
@@ -58,13 +59,25 @@ fun Project.setupMultiplatform(
         disableCompilationsOfNeeded()
     }
 
-    if (isMultiplatformTargetEnabled(Target.ANDROID)) {
-        setupAndroidCommon(requireDefaults())
-    }
-
     configureExtension<JavaPluginExtension> {
         targetCompatibility = JavaVersion.VERSION_11
         sourceCompatibility = JavaVersion.VERSION_11
+    }
+}
+
+private fun KotlinMultiplatformAndroidLibraryTarget.configureAndroid(config: AndroidConfig) {
+    compileSdk {
+        version = release(config.compileSdkVersion)
+    }
+
+    minSdk = config.minSdkVersion
+
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
+    }
+
+    if (compilations.none { it is KotlinMultiplatformAndroidHostTestCompilation }) {
+        withHostTest {}
     }
 }
 
@@ -75,23 +88,6 @@ fun KotlinMultiplatformExtension.setupSourceSets(block: MultiplatformSourceSets.
 fun interface MultiplatformConfigurator {
     operator fun KotlinMultiplatformExtension.invoke()
 }
-
-internal enum class Target {
-    ANDROID,
-    JVM,
-}
-
-internal fun Project.isMultiplatformTargetEnabled(target: Target): Boolean =
-    multiplatformExtension.targets.any {
-        when (it.platformType) {
-            KotlinPlatformType.androidJvm -> target == Target.ANDROID
-            KotlinPlatformType.jvm -> target == Target.JVM
-            KotlinPlatformType.common,
-            KotlinPlatformType.js,
-            KotlinPlatformType.native,
-            KotlinPlatformType.wasm -> false
-        }
-    }
 
 interface MultiplatformSourceSets : NamedDomainObjectContainer<KotlinSourceSet> {
 
@@ -141,21 +137,25 @@ private class DefaultMultiplatformSourceSets(
             .map { it.getSourceSetBundle() }
             .toSet()
 
-    private fun KotlinTarget.getSourceSetBundle(): SourceSetBundle =
-        if (compilations.isEmpty()) {
-            bundle(name)
-        } else {
+    private fun KotlinTarget.getSourceSetBundle(): SourceSetBundle {
+        val mainCompilation = compilations.findByName("main")
+        val testCompilation = compilations.findByName("test") ?: compilations.findByName("hostTest")
+
+        return if ((mainCompilation != null) && (testCompilation != null)) {
             SourceSetBundle(
-                main = compilations.getByName("main").defaultSourceSet,
-                test = compilations.getByName("test").defaultSourceSet,
+                main = mainCompilation.defaultSourceSet,
+                test = testCompilation.defaultSourceSet,
             )
+        } else {
+            bundle(name)
         }
+    }
 }
 
 fun NamedDomainObjectContainer<out KotlinSourceSet>.bundle(name: String): SourceSetBundle =
     SourceSetBundle(
         main = maybeCreate("${name}Main"),
-        test = maybeCreate(if (name == "android") "${name}UnitTest" else "${name}Test"),
+        test = maybeCreate(if (name == "android") "${name}HostTest" else "${name}Test"),
     )
 
 fun NamedDomainObjectContainer<out KotlinSourceSet>.bundle(): PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, SourceSetBundle>> =
@@ -207,32 +207,26 @@ fun KotlinMultiplatformExtension.iosCompat(
 }
 
 fun KotlinMultiplatformExtension.watchosCompat(
-    x64: String? = DEFAULT_TARGET_NAME,
     arm32: String? = DEFAULT_TARGET_NAME,
     arm64: String? = DEFAULT_TARGET_NAME,
     simulatorArm64: String? = DEFAULT_TARGET_NAME,
 ) {
-    enableTarget(name = x64, enableDefault = { watchosX64() }, enableNamed = { watchosX64(it) })
     enableTarget(name = arm32, enableDefault = { watchosArm32() }, enableNamed = { watchosArm32(it) })
     enableTarget(name = arm64, enableDefault = { watchosArm64() }, enableNamed = { watchosArm64(it) })
     enableTarget(name = simulatorArm64, enableDefault = { watchosSimulatorArm64() }, enableNamed = { watchosSimulatorArm64(it) })
 }
 
 fun KotlinMultiplatformExtension.tvosCompat(
-    x64: String? = DEFAULT_TARGET_NAME,
     arm64: String? = DEFAULT_TARGET_NAME,
     simulatorArm64: String? = DEFAULT_TARGET_NAME,
 ) {
-    enableTarget(name = x64, enableDefault = { tvosX64() }, enableNamed = { tvosX64(it) })
     enableTarget(name = arm64, enableDefault = { tvosArm64() }, enableNamed = { tvosArm64(it) })
     enableTarget(name = simulatorArm64, enableDefault = { tvosSimulatorArm64() }, enableNamed = { tvosSimulatorArm64(it) })
 }
 
 fun KotlinMultiplatformExtension.macosCompat(
-    x64: String? = DEFAULT_TARGET_NAME,
     arm64: String? = DEFAULT_TARGET_NAME,
 ) {
-    enableTarget(name = x64, enableDefault = { macosX64() }, enableNamed = { macosX64(it) })
     enableTarget(name = arm64, enableDefault = { macosArm64() }, enableNamed = { macosArm64(it) })
 }
 
